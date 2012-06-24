@@ -644,24 +644,6 @@ static void cbus_handle_msc_msg(struct sii9234_data *sii9234)
 	case MSG_RCP:
 		pr_debug("sii9234: RCP Arrived. KEY CODE:%d\n", key);
 		mutex_unlock(&sii9234->cbus_lock);
-#if 0
-		/* 2012's new remote control issue
-		 * long press of FF works as follows:
-		 * 1) fast forward during 15sec
-		 * 2) after then, MHL plays next media
-		 * to make it continuous Fast Forward, replace keycode as follows:
-		 */
-		if(key == 75) {
-			//interpret MEDIA_NEXT as MEDIA_FAST_FORWARD
-			key = 73;
-			pr_debug("sii9234: replace KEY CODE:75 --> %d\n", key);
-		}
-		else if(key == 76) {
-			//interpret MEDIA_PREVIOUS as MEDIA_REWIND
-			key = 72;
-			pr_debug("sii9234: replace KEY CODE:76 --> %d\n", key);
-		}
-#endif
 		cbus_process_rcp_key(sii9234, key);
 		return;
 	case MSG_RAP:
@@ -724,23 +706,12 @@ static void cbus_handle_wrt_stat_recd(struct sii9234_data *sii9234)
 	 */
 
 	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_0, &status_reg0);
+	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_0, 0xFF);
 	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_1, &status_reg1);
+	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_1, 0xFF);
 
 	pr_debug("sii9234: STATUS_REG0 : [%d];STATUS_REG1 : [%d]\n",
 			status_reg0, status_reg1);
-
-	/* clear WRT_STAT_RECD intr */
-	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_0, &value);
-	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_0, value);
-
-	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_1, &value);
-	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_1, value);
-
-	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_2, &value);
-	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_2, value);
-
-	cbus_read_reg(sii9234, CBUS_MHL_STATUS_REG_3, &value);
-	cbus_write_reg(sii9234, CBUS_MHL_STATUS_REG_3, value);
 
 	if (!(sii9234->mhl_status_value.linkmode & MHL_STATUS_PATH_ENABLED) &&
 				(MHL_STATUS_PATH_ENABLED & status_reg1)) {
@@ -936,6 +907,9 @@ int rsen_state_timer_out(struct sii9234_data *sii9234)
 		goto err_exit;
 	sii9234->rsen = value & RSEN_STATUS;
 
+#if defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined (CONFIG_KOR_MODEL_SHV_E160L)
+	pr_info("sii9234: jgk:%s() - ignore MHL_TX_SYSSTAT_REG\n", __func__);
+#else
 	if (value & RSEN_STATUS) {
 		pr_info("sii9234: MHL cable connected.. RESN High\n");
 	} else {
@@ -956,6 +930,7 @@ int rsen_state_timer_out(struct sii9234_data *sii9234)
 			goto err_exit;
 		}
 	}
+#endif
 	return ret;
 
 err_exit:

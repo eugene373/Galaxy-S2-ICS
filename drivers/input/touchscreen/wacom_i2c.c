@@ -788,10 +788,17 @@ static int wacom_i2c_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&wac_i2c->resume_work, wacom_i2c_resume_work);
 
 	/* Reset IC */
+#if defined(CONFIG_USA_MODEL_SGH_I717)	
+	gpio_set_value(GPIO_PEN_RESET, 0);
+	msleep(200);
+	gpio_set_value(GPIO_PEN_RESET, 1);
+	msleep(200);
+#else
 	gpio_set_value(GPIO_PEN_RESET, 0);
 	msleep(120);
 	gpio_set_value(GPIO_PEN_RESET, 1);
 	msleep(15);
+#endif
 	ret = wacom_i2c_query(wac_i2c);
 
 	if( ret < 0 )

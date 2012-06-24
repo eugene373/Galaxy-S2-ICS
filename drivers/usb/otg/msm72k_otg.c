@@ -1269,6 +1269,11 @@ void msm_otg_set_vbus_state(int online)
 }
 
 #ifdef CONFIG_USB_HOST_NOTIFY
+enum otg_control_type {
+	OTG_NO_CONTROL = 0,
+	OTG_PBA_CONTROL,
+};
+
 /* id =1 on, id = 0 off */
 void msm_otg_set_id_state_pbatest(int id)
 {
@@ -1278,6 +1283,8 @@ void msm_otg_set_id_state_pbatest(int id)
 		dev->pdata->otg_mode = OTG_USER_CONTROL;
 	else
 		dev->pdata->otg_mode = OTG_ID;
+
+	dev->otg_control = OTG_PBA_CONTROL;
 	
 	wake_lock(&dev->wlock);
 	if (!id) {
@@ -1287,6 +1294,39 @@ void msm_otg_set_id_state_pbatest(int id)
 		set_bit(A_BUS_REQ, &dev->inputs);
 	}
 	queue_work(dev->wq, &dev->sm_work);
+}
+
+enum usb_notify_state {
+	ACC_POWER_ON = 0,
+	ACC_POWER_OFF,
+	ACC_POWER_OVER_CURRENT,
+};
+
+static void msm_otg_notify_work(struct work_struct *w)
+{
+	struct msm_otg *dev = the_msm_otg;
+
+	switch (dev->notify_state) {
+	case ACC_POWER_ON:
+		dev_info(dev->otg.dev, "Acc power on detect\n");
+		break;
+	case ACC_POWER_OFF:
+		dev_info(dev->otg.dev, "Acc power off detect\n");
+		if (dev->otg_control == OTG_PBA_CONTROL) {
+			dev->otg_control = OTG_NO_CONTROL;
+			if (dev->pdata->set_autosw_pba) {
+				mdelay(200);
+				dev->pdata->set_autosw_pba();
+			}
+		}
+		break;
+	case ACC_POWER_OVER_CURRENT:
+		host_state_notify(&dev->ndev, NOTIFY_HOST_OVERCURRENT);
+		dev_err(dev->otg.dev, "OTG overcurrent!!!!!!\n");
+		break;
+	default:
+		break;
+	}
 }
 
 static void msm_otg_late_power_work(struct work_struct *w)
@@ -1374,15 +1414,17 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 #ifdef CONFIG_USB_HOST_NOTIFY
 			if (otgsc & OTGSC_BSV) {
 				the_msm_otg->ndev.booster = NOTIFY_POWER_ON;
-				dev_info(the_msm_otg->otg.dev, "Acc power on detect\n");
+				the_msm_otg->notify_state = ACC_POWER_ON;
+				schedule_work(&the_msm_otg->notify_work);
 			}
 			else {
 				if (the_msm_otg->ndev.mode == NOTIFY_HOST_MODE) {
-					host_state_notify(&the_msm_otg->ndev, NOTIFY_HOST_OVERCURRENT);
-					dev_err(the_msm_otg->otg.dev, "OTG overcurrent!!!!!!\n");
+					the_msm_otg->notify_state = ACC_POWER_OVER_CURRENT;
+					schedule_work(&the_msm_otg->notify_work);
 				}
 				else {
-					dev_info(the_msm_otg->otg.dev, "Acc power off detect\n");
+					the_msm_otg->notify_state = ACC_POWER_OFF;
+					schedule_work(&the_msm_otg->notify_work);
 				}
 				the_msm_otg->ndev.booster = NOTIFY_POWER_OFF;
 			}
@@ -2727,17 +2769,18 @@ static irqreturn_t msm_accessory_irq_thread(int irq, void *data)
 	if (msm_get_accpower_level(msm_otg->accessory_irq_gpio)) {
 #ifdef CONFIG_USB_HOST_NOTIFY
 		msm_otg->ndev.booster = NOTIFY_POWER_ON;
+		msm_otg->notify_state = ACC_POWER_ON;
+		schedule_work(&msm_otg->notify_work);
 #endif
-		dev_info(msm_otg->otg.dev, "Acc power on detect\n");
 	} else {
 #ifdef CONFIG_USB_HOST_NOTIFY
 		if (msm_otg->ndev.mode == NOTIFY_HOST_MODE) {
-			host_state_notify(&msm_otg->ndev,
-				NOTIFY_HOST_OVERCURRENT);
-			dev_err(msm_otg->otg.dev, "OTG overcurrent!!!!!!\n");
+			msm_otg->notify_state = ACC_POWER_OVER_CURRENT;
+			schedule_work(&msm_otg->notify_work);
 		}
 		else {
-			dev_info(msm_otg->otg.dev, "Acc power off detect\n");
+			msm_otg->notify_state = ACC_POWER_OFF;
+			schedule_work(&msm_otg->notify_work);
 		}
 		msm_otg->ndev.booster = NOTIFY_POWER_OFF;
 #endif
@@ -2872,8 +2915,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	wake_lock_init(&dev->wlock, WAKE_LOCK_SUSPEND, "msm_otg");
 #ifdef CONFIG_USB_HOST_NOTIFY
 	wake_lock_init(&dev->wlock_host, WAKE_LOCK_SUSPEND, "msm_otg_connection_kit");
-	INIT_DELAYED_WORK(&dev->late_power_work,
-					msm_otg_late_power_work);
 #endif
 
 	dev->wq = alloc_workqueue("k_otg", WQ_NON_REENTRANT, 0);
@@ -3045,6 +3086,11 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	}
 	else
 		dev_info(&pdev->dev, "success to host_notify_dev_register\n");
+	INIT_WORK(&dev->notify_work, msm_otg_notify_work);
+	INIT_DELAYED_WORK(&dev->late_power_work,
+					msm_otg_late_power_work);
+	dev->notify_state = ACC_POWER_OFF;
+	dev->otg_control = OTG_NO_CONTROL;
 #endif
 
 	return 0;
@@ -3126,6 +3172,7 @@ static int __exit msm_otg_remove(struct platform_device *pdev)
 #ifdef CONFIG_USB_HOST_NOTIFY
 	cancel_delayed_work_sync(&dev->late_power_work);
 	wake_lock_destroy(&dev->wlock_host);
+	cancel_work_sync(&dev->notify_work);
 #endif
 
 	if (dev->pdata->setup_gpio)

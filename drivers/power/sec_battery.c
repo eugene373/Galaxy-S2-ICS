@@ -591,8 +591,10 @@ struct sec_bat_info {
 #if defined(CONFIG_TARGET_LOCALE_USA)
 	bool ui_full_charge_status;
 	unsigned int device_state;
+	unsigned int vf_adc;
 	bool cable_uart_off;
 #endif
+
 #if defined(ADC_QUEUE_FEATURE) || defined(PRE_CHANOPEN_FEATURE)
 	/* 2 temperature, current, battid */
 	struct sec_batt_adc_chan batt_adc_chan[MAX_BATT_ADC_CHAN];
@@ -800,7 +802,7 @@ static int sec_bat_check_detbat(struct sec_bat_info *info)
 	defined(CONFIG_USA_MODEL_SGH_T769) || \
 	defined(CONFIG_USA_MODEL_SGH_I577) || \
 	defined(CONFIG_CAN_MODEL_SGH_I577R)
-	if (adc_physical > 500 && adc_physical < 900)
+	if (adc_physical > 300 && adc_physical < 900)
 #elif defined(CONFIG_USA_MODEL_SGH_I717)
 	if ((get_hw_rev() == 0x01) &&
 		(adc_physical > 1290 && adc_physical < 1800))
@@ -812,6 +814,8 @@ static int sec_bat_check_detbat(struct sec_bat_info *info)
 	else
 		value.intval = BAT_NOT_DETECTED;
 
+	info->vf_adc = adc_physical;
+	
 	/*
 	if (adc_physical >100 && adc_physical < 800)
 		value.intval = BAT_DETECTED;
@@ -842,16 +846,26 @@ static int sec_bat_check_detbat(struct sec_bat_info *info)
 
 	if (info->present == 1 &&
 		vf_state == BAT_NOT_DETECTED) {
+#if defined(CONFIG_TARGET_LOCALE_USA)
+		pr_info("%s : detbat state(->%d) changed, %d\n",
+			__func__, vf_state, info->vf_adc);
+#else
 		pr_info("%s : detbat state(->%d) changed\n",
 			__func__, vf_state);
+#endif
 		info->present = 0;
 		cancel_work_sync(&info->monitor_work);
 		wake_lock(&info->monitor_wake_lock);
 		queue_work(info->monitor_wqueue, &info->monitor_work);
 	} else if (info->present == 0 &&
 		vf_state == BAT_DETECTED) {
+#if defined(CONFIG_TARGET_LOCALE_USA)
+		pr_info("%s : detbat state(->%d) changed, %d\n",
+			__func__, vf_state, info->vf_adc);
+#else
 		pr_info("%s : detbat state(->%d) changed\n",
 			__func__, vf_state);
+#endif
 		info->present = 1;
 		cancel_work_sync(&info->monitor_work);
 		wake_lock(&info->monitor_wake_lock);
@@ -1400,7 +1414,11 @@ static int sec_bat_read_adc(struct sec_bat_info *info, int channel,
 
 	if (adc_data)
 		*adc_data = adc_chan_result.measurement;
-
+	else {
+		ret = -EINVAL;
+		goto out;
+	}
+		
 	pr_debug("%s: done for %d\n", __func__, channel);
 	*adc_physical = adc_chan_result.physical;
 

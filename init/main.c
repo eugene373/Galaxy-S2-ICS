@@ -407,6 +407,11 @@ int charging_mode_from_boot =0;
 int charging_mode_by_TA=0;
 #endif /* CONFIG_SAMSUNG_8X60_TABLET */
 
+#ifdef CONFIG_KOR_OPERATOR_LGU
+int no_uart_console = 0;
+EXPORT_SYMBOL(no_uart_console);
+#endif
+
 /* Check for early params. */
 static int __init do_early_param(char *param, char *val)
 {
@@ -453,6 +458,15 @@ static int __init do_early_param(char *param, char *val)
 		}
 	}
 	/* We accept everything at this stage. */
+
+#ifdef CONFIG_KOR_OPERATOR_LGU
+		/* check uart console is disabled */
+		if ((strcmp(param, "console") == 0)) {
+			if ((strcmp(val, "null") == 0) || (strcmp(val, "NULL") == 0))
+				no_uart_console = 1;
+		}
+#endif
+	
 	return 0;
 }
 

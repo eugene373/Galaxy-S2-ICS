@@ -305,14 +305,7 @@ static void sec_switch_init_work(struct work_struct *work)
 	if (uart_sel) {
 		uart_switch_mode(secsw, SWITCH_PDA);
 	} else {
-#if 1 // Temp for bring up work
-		uart_switch_mode(secsw, SWITCH_PDA);
-		secsw->switch_sel |= UART_SEL_MASK;
-		pr_debug("[UART Switch] Path : PDA\n");
-		sec_set_param(param_index_uartsel, &secsw->switch_sel);
-#else		
 		uart_switch_mode(secsw, SWITCH_MODEM);
-#endif
 	}
 	
 }
@@ -385,7 +378,7 @@ static int sec_switch_probe(struct platform_device *pdev)
 	if (wq) {
 		wq->sdata = secsw;
 		INIT_DELAYED_WORK(&wq->work_q, sec_switch_init_work);
-		schedule_delayed_work(&wq->work_q, msecs_to_jiffies(6000)); // proper delay until param block works fine
+		schedule_delayed_work(&wq->work_q, msecs_to_jiffies(7000)); // proper delay until param block works fine
 	} else
 		return -ENOMEM;
 	return 0;

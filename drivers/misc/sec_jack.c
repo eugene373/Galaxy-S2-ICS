@@ -64,10 +64,10 @@
 #define KEY_MEDIA_ADC_MAX 113
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && defined (CONFIG_PMIC8058_XOADC_CAL)
 #define KEY_MEDIA_ADC_MIN 0
-#define KEY_MEDIA_ADC_MAX 152
+#define KEY_MEDIA_ADC_MAX 145
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && !defined (CONFIG_PMIC8058_XOADC_CAL)
 #define KEY_MEDIA_ADC_MIN 0
-#define KEY_MEDIA_ADC_MAX 70
+#define KEY_MEDIA_ADC_MAX 117//114
 #elif defined (CONFIG_Q1_KOR_AUDIO)
 #define KEY_MEDIA_ADC_MIN 0
 #define KEY_MEDIA_ADC_MAX 149
@@ -77,6 +77,18 @@
 #elif defined (CONFIG_USA_MODEL_SGH_I717)
 #define KEY_MEDIA_ADC_MIN 0
 #define KEY_MEDIA_ADC_MAX 121
+#elif defined (CONFIG_USA_MODEL_SGH_I957)
+#define KEY_MEDIA_ADC_MIN 0
+#define KEY_MEDIA_ADC_MAX 178
+#elif defined (CONFIG_KOR_MODEL_SHV_E140S)
+#define KEY_MEDIA_ADC_MIN 0
+#define KEY_MEDIA_ADC_MAX 178
+#elif defined (CONFIG_KOR_MODEL_SHV_E140K)
+#define KEY_MEDIA_ADC_MIN 0
+#define KEY_MEDIA_ADC_MAX 178
+#elif defined (CONFIG_KOR_MODEL_SHV_E140L)
+#define KEY_MEDIA_ADC_MIN 0
+#define KEY_MEDIA_ADC_MAX 178
 #else	// etc
 #define KEY_MEDIA_ADC_MIN 0
 #define KEY_MEDIA_ADC_MAX 111
@@ -91,11 +103,11 @@
 #define KEY_VOLUMEUP_ADC_MIN 117
 #define KEY_VOLUMEUP_ADC_MAX 301
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && defined (CONFIG_PMIC8058_XOADC_CAL)
-#define KEY_VOLUMEUP_ADC_MIN 153
-#define KEY_VOLUMEUP_ADC_MAX 333
+#define KEY_VOLUMEUP_ADC_MIN 150
+#define KEY_VOLUMEUP_ADC_MAX 330
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && !defined (CONFIG_PMIC8058_XOADC_CAL)
-#define KEY_VOLUMEUP_ADC_MIN 71
-#define KEY_VOLUMEUP_ADC_MAX 285
+#define KEY_VOLUMEUP_ADC_MIN 118//120
+#define KEY_VOLUMEUP_ADC_MAX 306//291
 #elif defined (CONFIG_Q1_KOR_AUDIO)
 #define KEY_VOLUMEUP_ADC_MIN 150
 #define KEY_VOLUMEUP_ADC_MAX 330
@@ -118,6 +130,18 @@
 #elif defined (CONFIG_USA_MODEL_SGH_I717)
 #define KEY_VOLUMEUP_ADC_MIN 121
 #define KEY_VOLUMEUP_ADC_MAX 251
+#elif defined (CONFIG_USA_MODEL_SGH_I957)
+#define KEY_VOLUMEUP_ADC_MIN 189
+#define KEY_VOLUMEUP_ADC_MAX 391
+#elif defined (CONFIG_KOR_MODEL_SHV_E140S)
+#define KEY_VOLUMEUP_ADC_MIN 189
+#define KEY_VOLUMEUP_ADC_MAX 391
+#elif defined (CONFIG_KOR_MODEL_SHV_E140K)
+#define KEY_VOLUMEUP_ADC_MIN 189
+#define KEY_VOLUMEUP_ADC_MAX 391
+#elif defined (CONFIG_KOR_MODEL_SHV_E140L)
+#define KEY_VOLUMEUP_ADC_MIN 189
+#define KEY_VOLUMEUP_ADC_MAX 391
 #else
 #define KEY_VOLUMEUP_ADC_MIN 108
 #define KEY_VOLUMEUP_ADC_MAX 301
@@ -132,10 +156,10 @@
 #define KEY_VOLUMEDOWN_ADC_MIN 310
 #define KEY_VOLUMEDOWN_ADC_MAX 758
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && defined (CONFIG_PMIC8058_XOADC_CAL)
-#define KEY_VOLUMEDOWN_ADC_MIN 334
-#define KEY_VOLUMEDOWN_ADC_MAX 786
+#define KEY_VOLUMEDOWN_ADC_MIN 350
+#define KEY_VOLUMEDOWN_ADC_MAX 700
 #elif defined (CONFIG_KOR_MODEL_SHV_E110S) && !defined (CONFIG_PMIC8058_XOADC_CAL)
-#define KEY_VOLUMEDOWN_ADC_MIN 286
+#define KEY_VOLUMEDOWN_ADC_MIN 307//320
 #define KEY_VOLUMEDOWN_ADC_MAX 758
 #elif defined (CONFIG_Q1_KOR_AUDIO)
 #define KEY_VOLUMEDOWN_ADC_MIN 350
@@ -159,14 +183,26 @@
 #elif defined (CONFIG_USA_MODEL_SGH_I717)
 #define KEY_VOLUMEDOWN_ADC_MIN 251
 #define KEY_VOLUMEDOWN_ADC_MAX 681
+#elif defined (CONFIG_USA_MODEL_SGH_I957)
+#define KEY_VOLUMEDOWN_ADC_MIN 438
+#define KEY_VOLUMEDOWN_ADC_MAX 832
+#elif defined (CONFIG_USA_MODEL_SHV_E140S)
+#define KEY_VOLUMEDOWN_ADC_MIN 438
+#define KEY_VOLUMEDOWN_ADC_MAX 832
+#elif defined (CONFIG_USA_MODEL_SHV_E140K)
+#define KEY_VOLUMEDOWN_ADC_MIN 438
+#define KEY_VOLUMEDOWN_ADC_MAX 832
+#elif defined (CONFIG_USA_MODEL_SHV_E140L)
+#define KEY_VOLUMEDOWN_ADC_MIN 438
+#define KEY_VOLUMEDOWN_ADC_MAX 832
 #else
 #define KEY_VOLUMEDOWN_ADC_MIN 301
 #define KEY_VOLUMEDOWN_ADC_MAX 660
 #endif
 
-
-
-
+#if defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I727) || defined(CONFIG_USA_MODEL_SGH_T989)
+#define JACK_WATERPROOF
+#endif
 
 #ifdef SUPPORT_PBA
 struct class *jack_class;
@@ -175,11 +211,12 @@ EXPORT_SYMBOL(jack_class);
 /* Sysfs device, this is used for communication with Cal App. */
 static struct device *jack_selector_fs;     
 EXPORT_SYMBOL(jack_selector_fs);
-
+#if defined(JACK_WATERPROOF)
 static struct device *jack_reselector_fs;     
 EXPORT_SYMBOL(jack_reselector_fs);
 
 bool recheck_jack = false;
+#endif
 #endif
 
 extern int get_hw_rev(void);
@@ -299,7 +336,8 @@ static void sec_jack_set_type(struct sec_jack_info *hi, int jack_type)
 	 */
 	if (jack_type == hi->cur_jack_type)
 	{
-		pr_debug(MODULE_NAME "%s return, same type reason\n", __func__);
+		pr_info(MODULE_NAME "%s return, same type reason\n", __func__);
+		pr_info(MODULE_NAME "%s return, jack_type = %d, hi->cur_jack_type = %d\n", __func__, jack_type, hi->cur_jack_type);
 		return;
 	}
 
@@ -380,6 +418,7 @@ static void determine_jack_type(struct sec_jack_info *hi)
 			if (adc <= zones[i].adc_high) {
 				if (++count[i] > zones[i].check_count) {
 					//pr_debug(MODULE_NAME "determine_jack_type %d, %d, %d\n", zones[i].adc_high, count[i], zones[i].check_count);
+#if defined(JACK_WATERPROOF)
 					if(recheck_jack == true && i == 3) {
 						pr_info(MODULE_NAME "something worng connection!\n");
 						handle_jack_not_inserted(hi);
@@ -389,12 +428,20 @@ static void determine_jack_type(struct sec_jack_info *hi)
 					}
 						
 					sec_jack_set_type(hi, zones[i].jack_type);
+#else
+					sec_jack_set_type(hi,
+							zones[i].jack_type);
+#endif
 					//mic_bias remains enabled in race condition.
 					if (hi->cur_jack_type != SEC_HEADSET_4POLE) {
 						hi->pdata->set_micbias_state(false);
 						pr_info(MODULE_NAME "forced mic_bias disable\n");
 					}					
+#if defined(JACK_WATERPROOF)
+
 					recheck_jack = false;
+#else
+#endif
 					return;
 				}
 				msleep(zone_i_delay);
@@ -403,8 +450,11 @@ static void determine_jack_type(struct sec_jack_info *hi)
 		}
 	}
 	/* jack removed before detection complete */
+#if defined(JACK_WATERPROOF)
 
-	recheck_jack = false;
+					recheck_jack = false;
+#else
+#endif
 	handle_jack_not_inserted(hi);
 }
 
@@ -434,7 +484,7 @@ static ssize_t select_jack_store(struct device *dev, struct device_attribute *at
 	return size;
 }
 static DEVICE_ATTR(select_jack, S_IRUGO | S_IWUSR | S_IWGRP, select_jack_show, select_jack_store);
-
+#if defined(JACK_WATERPROOF)
 static ssize_t reselect_jack_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	pr_info("%s : operate nothing\n", __func__);
@@ -460,6 +510,7 @@ static ssize_t reselect_jack_store(struct device *dev, struct device_attribute *
 }
 static DEVICE_ATTR(reselect_jack, S_IRUGO | S_IWUSR | S_IWGRP, reselect_jack_show, reselect_jack_store);
 #endif
+#endif
 
 static irqreturn_t sec_jack_send_key_irq_handler(int irq, void *handle)
 {
@@ -468,7 +519,7 @@ static irqreturn_t sec_jack_send_key_irq_handler(int irq, void *handle)
 	pr_info(MODULE_NAME "%s : irq is %d.\n", __func__, irq);
 
 	if(hi->is_ready)
-	{		
+	{
 		//disable_irq_nosync(hi->pdata->send_int);
 		schedule_work(&hi->sendkey_work);
 	}	
@@ -683,13 +734,14 @@ static int sec_jack_probe(struct platform_device *pdev)
 
 	if (device_create_file(jack_selector_fs, &dev_attr_select_jack) < 0)
 		pr_err("%s : Failed to create device file(%s)!\n", __func__, dev_attr_select_jack.attr.name);
-
+#if defined(JACK_WATERPROOF)
 	jack_reselector_fs = device_create(jack_class, NULL, 0, hi, "jack_reselector");
 	if (IS_ERR(jack_reselector_fs))
 		pr_err("%s : Failed to create device(sec_jack)!= %ld\n", __func__, IS_ERR(jack_reselector_fs));
 
 	if (device_create_file(jack_reselector_fs, &dev_attr_reselect_jack) < 0)
 		pr_err("%s : Failed to create device file(%s)!\n", __func__, dev_attr_reselect_jack.attr.name);	
+#endif
 #endif
 
 	INIT_WORK(&hi->det_work, sec_jack_det_work_func);

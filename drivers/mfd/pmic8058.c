@@ -692,36 +692,8 @@ bail:
 }
 
 #if 1 /* TEST SBA - CN00733593*/ 
+
 static struct pm8058_chip *pmic_chip;
-static inline int
-ssbi_write(struct i2c_client *client, u16 addr, const u8 *buf, size_t len)
-{
-	int	rc;
-	struct	i2c_msg msg = {
-		.addr           = addr,
-		.flags          = 0x0,
-		.buf            = (u8 *)buf,
-		.len            = len,
-	};
-
-	rc = i2c_transfer(client->adapter, &msg, 1);
-	return (rc == 1) ? 0 : rc;
-}
-
-static inline int
-ssbi_read(struct i2c_client *client, u16 addr, u8 *buf, size_t len)
-{
-	int	rc;
-	struct	i2c_msg msg = {
-		.addr           = addr,
-		.flags          = I2C_M_RD,
-		.buf            = buf,
-		.len            = len,
-	};
-
-	rc = i2c_transfer(client->adapter, &msg, 1);
-	return (rc == 1) ? 0 : rc;
-}
 
 #define SSBI_REG_ADDR_LVS0A_TEST 0x12E 
 int pm8058_lvs0_ocp_disable(void) 
@@ -733,14 +705,14 @@ if (pmic_chip == NULL)
 return -ENODEV; 
 
 /* Set LVS0 to OCP disabled. */ 
-rc = ssbi_read(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test, 1); 
+rc = pm8058_readb(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test); 
 if (rc) { 
 pr_err("%s: FAIL ssbi_read(0x%x): rc=%d\n", __func__, 
 SSBI_REG_ADDR_LVS0A_TEST, rc); 
 goto get_out; 
 } 
 test |= 0x10; 
-rc = ssbi_write(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test, 1); 
+rc = pm8058_writeb(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test); 
 if (rc) 
 pr_err("%s: FAIL ssbi_write(0x%x)=0x%x: rc=%d\n", __func__, 
 SSBI_REG_ADDR_LVS0A_TEST, test, rc); 
@@ -759,7 +731,7 @@ if (pmic_chip == NULL)
 return -3; 
 
 /* Set LVS0 to OCP disabled. */ 
-rc = ssbi_read(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test, 1); 
+rc = pm8058_readb(pmic_chip->dev, SSBI_REG_ADDR_LVS0A_TEST, &test); 
 if (rc) { 
 pr_err("%s: FAIL ssbi_read(0x%x): rc=%d\n", __func__, 
 SSBI_REG_ADDR_LVS0A_TEST, rc); 
@@ -821,9 +793,13 @@ static int __devinit pm8058_probe(struct platform_device *pdev)
 		pr_err("%s: failed to config shutdown on hard reset: %d\n",
 								__func__, rc);
 
-        #if defined(CONFIG_TARGET_LOCALE_USA)
-        /* TEST SBA - CN00733593*/ 
+  #if defined(CONFIG_TARGET_LOCALE_USA)
+  /* TEST SBA - CN00733593*/ 
+  #ifndef CONFIG_USA_MODEL_SGH_I957
+  pmic_chip=pmic;
 	pm8058_lvs0_ocp_disable();
+	#endif
+	
 	#endif
 	
 	return 0;

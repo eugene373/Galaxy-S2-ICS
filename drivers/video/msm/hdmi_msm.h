@@ -15,6 +15,7 @@
 
 #include <linux/switch.h>
 #include <mach/msm_iomap.h>
+#include <linux/wakelock.h>
 #include "external_common.h"
 /* #define PORT_DEBUG */
 
@@ -104,6 +105,10 @@ struct hdmi_msm_state_type {
 
 	struct external_common_state_type common;
 	boolean	boot_completion;
+	struct wake_lock wake_lock;
+	boolean dock_state;
+	boolean boot_state;
+
 #ifndef QCT_SWITCH_STATE_CMD
 	struct switch_dev	hdmi_audio_switch;
 #endif

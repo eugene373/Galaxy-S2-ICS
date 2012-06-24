@@ -68,6 +68,12 @@
 #include "timpani_profile_quincy_lgt.h"
 #elif defined(CONFIG_USA_MODEL_SGH_I957)  //P5LTE-ATT
 #include "timpani_profile_p5lte_att.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140S)  //P5LTE-SKT
+#include "timpani_profile_p5lte_skt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140K)  //P5LTE-KT
+#include "timpani_profile_p5lte_kt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140L)  //P5LTE-LGU
+#include "timpani_profile_p5lte_lgt.h"
 #else
 #include "timpani_profile_celox_kor.h"
 #endif
@@ -111,6 +117,9 @@ extern unsigned int get_hw_rev(void);
 
 /* GPIO_CLASS_D1_EN */
 #define SNDDEV_GPIO_CLASS_D1_EN 229
+
+#define PMIC_GPIO_MUTE_CON		PM8058_GPIO(26)  	/* PMIC GPIO Number 26 */
+#define PMIC_GPIO_AMP_EN		PM8058_GPIO(20)	/* PMIC GPIO Number 20 */
 
 #define SNDDEV_GPIO_MIC2_ANCR_SEL 294
 #define SNDDEV_GPIO_MIC1_ANCL_SEL 295
@@ -487,6 +496,41 @@ static int config_class_d0_gpio(int enable)
 }
 #endif
 
+int ear_amp_en = -1;
+static void config_mute_con_gpio(int enable)
+{
+	pr_err("system rev : %d\n",system_rev);
+#ifdef CONFIG_TARGET_SERIES_P5LTE
+	if(system_rev>=04)
+		enable = !enable;
+#endif
+#ifdef CONFIG_TARGET_SERIES_P4LTE
+		if(system_rev>=03)
+			enable = !enable;
+#endif
+
+	if(ear_amp_en == enable)
+		return;
+
+	if (enable) {
+		printk("%s : MUTE_CON enable : %d\n",__func__,enable);
+#ifdef CONFIG_TARGET_SERIES_P8LTE
+		gpio_set_value_cansleep(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_MUTE_CON), 0);
+#else
+		gpio_set_value_cansleep(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_MUTE_CON), 1);
+#endif
+		ear_amp_en = 1;
+	} else {
+		printk("%s : MUTE_CON disable : %d\n",__func__,enable);
+#ifdef CONFIG_TARGET_SERIES_P8LTE
+		gpio_set_value_cansleep(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_MUTE_CON), 1);
+#else
+		gpio_set_value_cansleep(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_MUTE_CON), 0);
+#endif
+		ear_amp_en = 0;
+	}
+	return;
+}
 
 static int msm_snddev_amp_on_speaker(void)
 {
@@ -507,7 +551,7 @@ static int msm_snddev_amp_on_speaker(void)
 	 return 0;
 }
 
-#if defined(CONFIG_MACH_P8_LTE) //kks_110915_1
+#if defined(CONFIG_TARGET_SERIES_P8LTE) //kks_110915_1
 static int msm_snddev_amp_on_normal_speaker(void)
 {
 	pr_err("%s\n", __func__);
@@ -561,13 +605,13 @@ static int msm_snddev_amp_on_headset(void)
 	 wm8994_set_headset(1);
 #endif	
 	msleep(30); // mute con
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
 	config_mute_con_gpio(1); // P4,P5,P8 amp & mute con (rev)
 #endif
 	return 0;
 }
 
-#if defined(CONFIG_MACH_P8_LTE) //kks_110916_1
+#if defined(CONFIG_TARGET_SERIES_P8LTE) //kks_110916_1
 static int msm_snddev_amp_on_normal_headset(void)
 {
 	pr_err("%s\n", __func__);
@@ -581,7 +625,7 @@ static int msm_snddev_amp_on_normal_headset(void)
 	 wm8994_set_normal_headset(1);
 #endif	
 	msleep(30); // mute con
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
 	config_mute_con_gpio(1); // P4,P5,P8 amp & mute con (rev)
 #endif
 	return 0;
@@ -597,16 +641,16 @@ static int msm_snddev_amp_on_speaker_headset(void)
 
 
 #ifdef CONFIG_SENSORS_MAX9879
-		max9879_i2c_speaker_onoff(1);
+	max9879_i2c_speaker_onoff(1);
 #endif
 
 #ifdef CONFIG_WM8994_AMP
-		msleep(50); 
-		wm8994_set_speaker_headset(1);
+	msleep(50); 
+	wm8994_set_speaker_headset(1);
 #endif	
-		msleep(30); // for mute con
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
-		config_mute_con_gpio(1); // P4,P5,P8 amp & mute con (rev)
+	msleep(30); // for mute con
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
+	config_mute_con_gpio(1); // P4,P5,P8 amp & mute con (rev)
 #endif		
 	return 0;
 }
@@ -637,7 +681,7 @@ static void msm_snddev_amp_off_headset(void)
 #ifdef CONFIG_SENSORS_YDA160
 	yda160_off();
 #endif
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
  //        config_mute_con_gpio(0); // P4,P5,P8 amp & mute con (rev)
 #endif         
 		msleep(30);
@@ -648,14 +692,14 @@ static void msm_snddev_amp_off_headset(void)
 	return;
 }
 
-#if defined(CONFIG_MACH_P8_LTE) //kks_110916_1
+#if defined(CONFIG_TARGET_SERIES_P8LTE) //kks_110916_1
 static void msm_snddev_amp_off_normal_headset(void)
 {
 	pr_err("%s\n", __func__);
 #ifdef CONFIG_SENSORS_YDA160
 	yda160_off();
 #endif
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
  //        config_mute_con_gpio(0); // P4,P5,P8 amp & mute con (rev)
 #endif         
 		msleep(30);
@@ -684,7 +728,7 @@ static void msm_snddev_amp_off_speaker(void)
 	return;
 }
 
-#if defined(CONFIG_MACH_P8_LTE) //kks_110915_1
+#if defined(CONFIG_TARGET_SERIES_P8LTE) //kks_110915_1
 static void msm_snddev_amp_off_normal_speaker(void)
 {
 	pr_err("%s\n", __func__);
@@ -731,7 +775,7 @@ static void msm_snddev_amp_off_speaker_headset(void)
 #ifdef CONFIG_SENSORS_MAX9879
 		max9879_i2c_speaker_onoff(0);
 #endif
-#if defined(CONFIG_MACH_P5_LTE) || defined(CONFIG_MACH_P8_LTE) || defined(CONFIG_MACH_P4_LTE)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) || defined(CONFIG_TARGET_SERIES_P8LTE) || defined(CONFIG_TARGET_SERIES_P4LTE)
 //		config_mute_con_gpio(0); // P4,P5,P8 amp & mute con (rev)
 #endif		
 		msleep(30); // for mute con
@@ -1615,7 +1659,7 @@ static void msm_snddev_disable_amic_power(void)
 #endif
 }
 
-#if 0		// warning, compilation error - not used
+#if 1		// warning, compilation error - not used
 static int msm_snddev_enable_anc_power(void)
 {
 	int ret = 0;
@@ -2852,8 +2896,8 @@ static struct snddev_icodec_data headset_rx_data = {
 	//	.profile = &headset_ab_cpls_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
 };
@@ -2992,8 +3036,8 @@ static struct snddev_icodec_data headset_vt_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call_headset,
 	.pamp_off = msm_snddev_poweramp_off_call_headset,
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif	
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
@@ -3076,8 +3120,8 @@ static struct snddev_icodec_data deskdock_vt_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,
 #else	
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif 	
 };
 
@@ -3244,8 +3288,8 @@ static struct snddev_icodec_data deskdock_voip_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif	
 };
 
@@ -3312,8 +3356,8 @@ static struct snddev_icodec_data speaker_call_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,	
     #else
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif
 #endif
 };
@@ -3346,8 +3390,8 @@ static struct snddev_icodec_data deskdock_call_rx_data = {
 	.pamp_on = msm_snddev_audience_speaker_on,
 	.pamp_off = msm_snddev_audience_speaker_off,	
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif
 };
 
@@ -3385,8 +3429,8 @@ static struct snddev_icodec_data headset_call_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call_headset,
 	.pamp_off = msm_snddev_poweramp_off_call_headset,
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif	
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
@@ -3421,8 +3465,8 @@ static struct snddev_icodec_data headset_loopback_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call_headset,
 	.pamp_off = msm_snddev_poweramp_off_call_headset,
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif	
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
@@ -3579,8 +3623,8 @@ static struct snddev_icodec_data fm_radio_headset_rx_data = {
 	.profile = &fm_radio_headset_rx_profile, //  headset_fmradio_rx_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 8000,
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
 };
@@ -3592,8 +3636,8 @@ static struct snddev_icodec_data fm_radio_speaker_rx_data = {
 	.profile = &fm_radio_speaker_rx_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 8000,
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 };
 
 static struct snddev_mi2s_data fm_radio_tx_data = {
@@ -3628,8 +3672,8 @@ static struct snddev_icodec_data lineout_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_lineout,
 	.pamp_off = msm_snddev_poweramp_off_lineout,	
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
@@ -3646,8 +3690,8 @@ static struct snddev_icodec_data tty_headset_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_headset_call,
 	.pamp_off = msm_snddev_poweramp_off_headset_call,
 #else	
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
@@ -3669,8 +3713,8 @@ static struct snddev_icodec_data speaker_headset_rx_data = {
 	.profile = &speaker_headset_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_poweramp_on_together,
-	.pamp_off = msm_snddev_poweramp_off_together,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
 };
@@ -3682,8 +3726,8 @@ static struct snddev_icodec_data speaker_lineout_rx_data = {
 	.profile = &speaker_lineout_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_poweramp_on_together,
-	.pamp_off = msm_snddev_poweramp_off_together,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
 };
@@ -3781,8 +3825,8 @@ static struct snddev_icodec_data speaker_call2_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,	
     #else
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif
 
 #endif
@@ -3819,8 +3863,8 @@ static struct snddev_icodec_data headset_call2_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call_headset,
 	.pamp_off = msm_snddev_poweramp_off_call_headset,
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif	
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
@@ -3901,8 +3945,8 @@ static struct snddev_icodec_data deskdock_call2_rx_data = {
 	.pamp_on = msm_snddev_audience_speaker_on,
 	.pamp_off = msm_snddev_audience_speaker_off,	
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif
 };
 
@@ -4075,8 +4119,8 @@ static struct snddev_icodec_data deskdock_voip2_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif	
 };
 
@@ -4130,8 +4174,8 @@ static struct snddev_icodec_data speaker_voip3_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif	
 };
 
@@ -4166,8 +4210,8 @@ static struct snddev_icodec_data headset_voip3_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call_headset,
 	.pamp_off = msm_snddev_poweramp_off_call_headset,
 #else
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 #endif
 #endif	
 	.voltage_on = msm_snddev_voltage_on,
@@ -4250,8 +4294,8 @@ static struct snddev_icodec_data deskdock_voip3_rx_data = {
 	.pamp_on = msm_snddev_poweramp_on_call,
 	.pamp_off = msm_snddev_poweramp_off_call,
 #else		
-	.pamp_on = msm_snddev_poweramp_on,
-	.pamp_off = msm_snddev_poweramp_off,
+	.pamp_on = msm_snddev_amp_on_speaker,
+	.pamp_off = msm_snddev_amp_off_speaker,
 #endif	
 };
 
@@ -5228,8 +5272,8 @@ static struct snddev_icodec_data snddev_ihs_stereo_rx_data = {
 	.profile = &headset_ab_cpls_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_poweramp_on_headset,
-	.pamp_off = msm_snddev_poweramp_off_headset,
+	.pamp_on = msm_snddev_amp_on_headset,
+	.pamp_off = msm_snddev_amp_off_headset,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
 };
@@ -5264,8 +5308,8 @@ static struct snddev_icodec_data snddev_anc_headset_data = {
 	.profile = &headset_anc_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_poweramp_on_together,
-	.pamp_off = msm_snddev_poweramp_off_together,
+	.pamp_on = msm_snddev_enable_anc_power,
+	.pamp_off = msm_snddev_disable_anc_power,
 	//	.pamp_on = msm_snddev_enable_anc_power,
 	//	.pamp_off = msm_snddev_disable_anc_power,
 	.voltage_on = msm_snddev_voltage_on,

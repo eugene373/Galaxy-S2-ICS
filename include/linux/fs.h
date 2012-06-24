@@ -23,8 +23,7 @@
 
 /* Fixed constants first: */
 #undef NR_OPEN
-#define INR_OPEN_CUR 2048
-//#define INR_OPEN_CUR 1024	/* Initial setting for nfile rlimits */
+#define INR_OPEN_CUR 1024	/* Initial setting for nfile rlimits */
 #define INR_OPEN_MAX 4096	/* Hard limit for nfile rlimits */
 
 #define BLOCK_SIZE_BITS 10
@@ -55,8 +54,7 @@ struct inodes_stat_t {
 };
 
 
-#define NR_FILE 16384
-//#define NR_FILE  8192	/* this can well be larger on a larger system */
+#define NR_FILE  8192	/* this can well be larger on a larger system */
 
 #define MAY_EXEC 1
 #define MAY_WRITE 2

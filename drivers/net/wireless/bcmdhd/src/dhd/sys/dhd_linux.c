@@ -2726,7 +2726,7 @@ dhd_open(struct net_device *net)
 			if (ret != 0) {
 				DHD_ERROR(("wl_android_wifi_on failed (%d)\n", ret));
 				goto exit;
-			}
+				}
 		} else {
 #ifdef CUSTOMER_HW_SAMSUNG
 			/* CSP#505233: Flags to indicate if we distingish
@@ -3291,7 +3291,13 @@ dhd_bus_start(dhd_pub_t *dhdp)
 	dhd_write_rdwr_macaddr(&dhd->pub.mac);
 #endif
 #ifdef WRITE_MACADDR
+#ifdef SOFTAP
+	if (ap_fw_loaded == FALSE) {
+		dhd_write_macaddr(&dhd->pub.mac);
+	}
+#else
 	dhd_write_macaddr(&dhd->pub.mac);
+#endif
 #endif
 #endif /* CUSTOMER_HW_SAMSUNG */
 

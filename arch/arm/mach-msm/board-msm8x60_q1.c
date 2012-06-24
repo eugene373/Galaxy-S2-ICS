@@ -11214,8 +11214,7 @@ static struct msm_ssbi_platform_data msm8x60_ssbi_pm8901_pdata __devinitdata = {
 };
 #endif /* CONFIG_PMIC8901 */
 
-#if defined(CONFIG_MARIMBA_CORE) && (defined(CONFIG_GPIO_SX150X) \
-	|| defined(CONFIG_GPIO_SX150X_MODULE))
+#if defined(CONFIG_MARIMBA_CORE)
 
 static struct regulator *vreg_bahama;
 static int msm_bahama_sys_rst = GPIO_MS_SYS_RESET_N;
@@ -16515,7 +16514,6 @@ static struct msm_rpm_platform_data msm_rpm_data = {
 };
 #endif
 
-#if defined(CONFIG_KOR_MODEL_SHV_E160L)
 void msm_fusion_setup_pinctrl(void)
 {
 	struct msm_xo_voter *a1;
@@ -16528,7 +16526,6 @@ void msm_fusion_setup_pinctrl(void)
 	BUG_ON(!a1);
 	msm_xo_mode_vote(a1, MSM_XO_MODE_PIN_CTRL);
 }
-#endif
 
 struct msm_board_data {
 	struct msm_gpiomux_configs *gpiomux_cfgs;

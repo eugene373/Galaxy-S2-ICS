@@ -165,6 +165,9 @@ struct msm_otg {
 	struct wake_lock wlock_host;
 	struct host_notify_dev ndev;
 	struct delayed_work late_power_work;
+	struct work_struct notify_work;
+	unsigned notify_state;
+	u8      otg_control;
 #endif
 #ifdef CONFIG_30PIN_CONN
 	int accessory_irq;

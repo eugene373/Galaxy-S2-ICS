@@ -59,7 +59,6 @@
 struct common_data common;
 
 int test_loopback_mode = 0;
-int routing_cmd_mode = 0;
 
 int voice_set_loopback_mode(int mode)
 {
@@ -881,10 +880,6 @@ static int voice_send_cvs_cal_to_modem(struct voice_data *v)
 			pr_err("%s: wait_event timeout\n", __func__);
 			return -EINVAL;
 		}
-		/* modify timing to each function for VoIP */
-		if(common.voc_path == VOC_PATH_FULL && routing_cmd_mode == 1) {
-			msleep(1);
-		}
 	}
 	kfree(cmd_buf);
 done:
@@ -963,10 +958,6 @@ static int voice_send_cvp_cal_to_modem(struct voice_data *v)
 			pr_err("%s: wait_event timeout\n", __func__);
 			return -EINVAL;
 		}
-		/* modify timing to each function for VoIP */
-		if(common.voc_path == VOC_PATH_FULL && routing_cmd_mode == 1) {
-			msleep(1);
-		}
 	}
 	kfree(cmd_buf);
 done:
@@ -1043,10 +1034,6 @@ static int voice_send_cvp_vol_tbl_to_modem(struct voice_data *v)
 		if (!ret) {
 			pr_err("%s: wait_event timeout\n", __func__);
 			return -EINVAL;
-		}
-		/* modify timing to each function for VoIP */
-		if(common.voc_path == VOC_PATH_FULL && routing_cmd_mode == 1) {
-			msleep(1);
 		}
 	}
 	kfree(cmd_buf);
@@ -1755,20 +1742,29 @@ if( common.voc_path == VOC_PATH_PASSIVE)  //if( voice.voc_path == VOC_PATH_PASSI
  }
 #endif 
 
-        /* add flag for routing */
-        routing_cmd_mode = 1;
-
+	pr_err("Start of sending apr packets\n");
 	/* send cvs cal */
 	voice_send_cvs_cal_to_modem(v);
+#if defined(CONFIG_USA_MODEL_SGH_T989)
+	/* timing relaxation for VoIP */
+	if( common.voc_path == VOC_PATH_FULL) {
+		msleep(1);
+	}
+#endif 
 
 	/* send cvp cal */
 	voice_send_cvp_cal_to_modem(v);
+#if defined(CONFIG_USA_MODEL_SGH_T989)
+	/* timing relaxation for VoIP */
+	if( common.voc_path == VOC_PATH_FULL) {
+		msleep(1);
+	}
+#endif 
 
 	/* send cvp vol table cal */
 	voice_send_cvp_vol_tbl_to_modem(v);
+	pr_err("End of sending APR packets\n");
 
-	routing_cmd_mode = 0;
-	
 	return 0;
 
 fail:
@@ -2490,7 +2486,7 @@ static void voice_auddev_cb_function(u32 evt_id,
 		mutex_lock(&v->lock);
 		//printk("%s AUDDEV_EVT_START_VOICE \n", __func__);
 
-#if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined(CONFIG_KOR_MODEL_SHV_E120L) || defined (CONFIG_KOR_MODEL_SHV_E160S) || defined (CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) //kks_111020 // Qualcomm Gon's workaround code to solve the sound mute problem after subsystem reset(SSR) during voice call(QC case 645569)
+#if defined(CONFIG_KOR_MODEL_SHV_E120S) || defined(CONFIG_KOR_MODEL_SHV_E120K) || defined(CONFIG_KOR_MODEL_SHV_E120L) || defined (CONFIG_KOR_MODEL_SHV_E160S) || defined (CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) //kks_111020 // Qualcomm Gon's workaround code to solve the sound mute problem after subsystem reset(SSR) during voice call(QC case 645569)
 		if( (v->voc_state == VOC_RUN) && (NULL == voice_get_apr_mvm())) 
 		{
 			v->voc_state = VOC_RELEASE;

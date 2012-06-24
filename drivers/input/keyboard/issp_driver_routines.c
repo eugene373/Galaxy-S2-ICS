@@ -88,6 +88,11 @@ extern unsigned char firmware_data_rev02[];
 extern unsigned char firmware_data_rev03[];
 extern unsigned char firmware_data_rev04[];
 extern unsigned char firmware_data_rev05[];  //active high
+
+#elif defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_CAN_MODEL_SGH_I577R)
+extern unsigned int  get_hw_rev(void);
+extern unsigned char firmware_data_activehigh[];
+
 #elif defined(CONFIG_USA_MODEL_SGH_I727)
 extern unsigned int  get_hw_rev(void);
 extern unsigned char firmware_data_activehigh[];
@@ -376,6 +381,15 @@ if (get_hw_rev() >= 0x07)
     for (dataNum = 0; dataNum < TARGET_DATABUFF_LEN; dataNum++) {
         abTargetDataOUT[dataNum] = firmware_data_activehigh[bBlockNum*TARGET_DATABUFF_LEN + dataNum];
         // abTargetDataOUT[bTargetDataPtr] = bTargetDataPtr + bBlockNum + bBankNum;
+    }
+}
+else
+#elif defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_CAN_MODEL_SGH_I577R)
+if (get_hw_rev() >= 0x0d)
+{
+    for (dataNum = 0; dataNum < TARGET_DATABUFF_LEN; dataNum++) {
+	abTargetDataOUT[dataNum] = firmware_data_activehigh[bBlockNum*TARGET_DATABUFF_LEN + dataNum];
+	// abTargetDataOUT[bTargetDataPtr] = bTargetDataPtr + bBlockNum + bBankNum;
     }
 }
 else

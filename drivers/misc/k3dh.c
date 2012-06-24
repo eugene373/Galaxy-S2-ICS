@@ -110,7 +110,9 @@ static int k3dh_read_accel_raw_xyz(struct k3dh_data *k3dh, struct k3dh_acc *acc)
 
 #if defined (CONFIG_TARGET_LOCALE_KOR) || defined (CONFIG_JPN_MODEL_SC_03D)|| defined(CONFIG_USA_MODEL_SGH_I727)|| defined(CONFIG_USA_MODEL_SGH_T989) \
  || defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_EUR_MODEL_GT_I9210) || defined(CONFIG_USA_MODEL_SGH_I957) \
- || defined(CONFIG_USA_MODEL_SGH_I757)|| defined (CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I577)
+ || defined(CONFIG_USA_MODEL_SGH_I757)|| defined (CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I577) \
+ || defined(CONFIG_KOR_MODEL_SHV_E140S)|| defined (CONFIG_KOR_MODEL_SHV_E140K) || defined(CONFIG_KOR_MODEL_SHV_E140L)
+
 extern unsigned int get_hw_rev(void);
 #endif
 
@@ -198,8 +200,10 @@ static int k3dh_read_accel_xyz(struct k3dh_data *k3dh, struct k3dh_acc *acc)
 	}
 #elif defined (CONFIG_USA_MODEL_SGH_I577)
 	{
-		acc->x = -(acc->x);
-		acc->y = -(acc->y);
+                acc->x = acc->x;
+                s16 temp = acc->x;
+                acc->x = acc->y;
+                acc->y = (temp);
 	}
 #elif defined (CONFIG_USA_MODEL_SGH_I727)
 	if (get_hw_rev() >= 0x04 ) 
@@ -351,7 +355,6 @@ static int k3dh_open(struct inode *inode, struct file *file)
 	struct k3dh_data *k3dh = container_of(file->private_data, struct k3dh_data, k3dh_device);
 
 	if (atomic_read(&k3dh->opened) == 0) {
-		file->private_data = k3dh;
 		err = k3dh_open_calibration(k3dh);
 		if (err < 0)
 			pr_err("[ACC] %s: k3dh_open_calibration() failed\n", __func__);
@@ -373,7 +376,7 @@ static int k3dh_open(struct inode *inode, struct file *file)
 static int k3dh_close(struct inode *inode, struct file *file)
 {
 	int err = 0;
-	struct k3dh_data *k3dh = file->private_data;
+	struct k3dh_data *k3dh = container_of(file->private_data, struct k3dh_data, k3dh_device);
 
 	atomic_sub(1, &k3dh->opened);
 	if (atomic_read(&k3dh->opened) == 0) {
@@ -440,7 +443,7 @@ static int k3dh_set_delay(struct k3dh_data *k3dh, s64 delay_ns)
 static long k3dh_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	int err = 0;
-	struct k3dh_data *k3dh = file->private_data;
+	struct k3dh_data *k3dh = container_of(file->private_data, struct k3dh_data, k3dh_device);
 	struct k3dh_acc data;
 	s64 delay_ns;
 
@@ -603,8 +606,14 @@ static ssize_t k3dh_calibration_show(struct device *dev, struct device_attribute
 	err = k3dh_open_calibration(k3dh);
 	if (err < 0)
 		pr_err("[ACC] %s: k3dh_open_calibration() failed\n", __func__);
-
+	if (k3dh->cal_data.x == 0 && k3dh->cal_data.y== 0 && k3dh->cal_data.z == 0)
+		err = -1;
+#if defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I577) || defined (CONFIG_USA_MODEL_SGH_T769) ||\
+	defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I757)
+	return sprintf(buf, "%d %d %d %d\n", err, k3dh->cal_data.x, k3dh->cal_data.y, k3dh->cal_data.z);
+#else
 	return sprintf(buf, "%d %d %d\n", k3dh->cal_data.x, k3dh->cal_data.y, k3dh->cal_data.z);
+#endif
 }
 
 static ssize_t k3dh_calibration_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)

@@ -140,7 +140,6 @@
 #define PRX_CONFIG_PARAM		0x00
 #define PRX_PULSE_CNT_PARAM		0x0A
 #define PRX_GAIN_PARAM			0x28	// 21
-#define LIGHT_BUFFER_NUM 5
 
 #define SENSOR_DEFAULT_DELAY		(200)
 #define SENSOR_MAX_DELAY			(2000)
@@ -168,35 +167,6 @@ static TAOS_ALS_FOPS_STATUS taos_als_status = TAOS_ALS_CLOSED;
 static TAOS_PRX_FOPS_STATUS taos_prx_status = TAOS_PRX_CLOSED;
 static TAOS_CHIP_WORKING_STATUS taos_chip_status = TAOS_CHIP_UNKNOWN;
 static TAOS_PRX_DISTANCE_STATUS taos_prox_dist = TAOS_PRX_DIST_UNKNOWN;
-#if defined(CONFIG_USA_MODEL_SGH_T769)
-static const int adc_table[4] = {
-	15,
-	150,
-	1350,
-	13000,
-};
-#elif defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_CAN_MODEL_SGH_I577R)
-static const int adc_table[4] = {
-	15,
-	163,
-	1650,
-	15700,
-};
-#elif defined(CONFIG_USA_MODEL_SGH_I757) || defined(CONFIG_CAN_MODEL_SGH_I757M)
-static const int adc_table[4] = {
-	15,
-	160,
-	1600,
-	16000,
-};
-#else
-static const int adc_table[4] = {
-	15,
-	150,
-	1450,
-	13000,
-};
-#endif
 
 /*  i2c write routine for taos */
 static int opt_i2c_write( u8 reg, u8 *val )
@@ -720,33 +690,14 @@ static irqreturn_t taos_irq_handler(int irq, void *dev_id)
 
 static void taos_work_func_light(struct work_struct *work)
 {
-	int i=0;
 	struct taos_data *taos = container_of(work, struct taos_data, work_light);
 	int lux=0;
-	state_type level_state = LIGHT_INIT;	
 
 	//read value 	
 	lux =  taos_get_lux();
 
-	for (i=0; ARRAY_SIZE(adc_table); i++)
-		if(lux <= adc_table[i])
-			break;
-
-	if(taos->light_buffer == i) {
-		if(taos->light_count++ == LIGHT_BUFFER_NUM) {
-			input_report_abs(taos->light_input_dev, ABS_MISC, lux);
-			input_sync(taos->light_input_dev);
-			taos->light_count = 0;
-			count++;
-			if (count == 10) {
-				printk("[TAOS](%d) Lux=%d, Ch[0]=%d, Ch[1]=%d\n", count, lux, cleardata, irdata);
-				count = 0;
-			}
-		}
-	} else {
-		taos->light_buffer = i;
-		taos->light_count = 0;
-	}
+	input_report_abs(taos->light_input_dev, ABS_MISC, lux);
+	input_sync(taos->light_input_dev);
 }
 
 static enum hrtimer_restart taos_timer_func(struct hrtimer *timer)

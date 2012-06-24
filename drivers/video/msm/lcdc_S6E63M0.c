@@ -69,6 +69,7 @@
 #define LCDC_DEBUG
 
 #define SMART_MTP
+#define MAPPING_TBL_AUTO_BRIGHTNESS 1
 
 #ifdef SMART_MTP
 #include "smart_mtp_s6e63m0.h"
@@ -123,7 +124,10 @@ struct s6e63m0 {
 #ifdef SMART_MTP
 	struct SMART_DIM smart;
     boolean bMtpFirstReadFail;
+#endif
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	unsigned int			auto_brightness;
 #endif
 };
 
@@ -700,6 +704,16 @@ static int lcdc_s6e63m0_panel_off(struct platform_device *pdev)
 	DPRINT("%s -\n", __func__);	
 	return 0;
 }
+
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+#define CANDELA_TABLE_SIZE 24
+static const unsigned int candela_table[CANDELA_TABLE_SIZE] = {
+	 30,  40,  50,  60,  70,  80,  90, 100, 110, 120,
+	130, 140, 150, 160, 170, 180, 190, 200, 210, 220,
+	230, 240, 250, 300
+};
+#endif
+
 #ifdef SMART_MTP
 #define gen_table_max 21
 int illumination_tabel[] =
@@ -723,9 +737,12 @@ void Gen_gamma_table(struct s6e63m0 *lcd)
 {
 	int i;
 	char gen_gamma[gen_table_max] ={0,};
-
-	lcd->smart.brightness_level = illumination_tabel[lcd->bl];
 	
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	lcd->smart.brightness_level = candela_table[lcd->bl];
+#else
+	lcd->smart.brightness_level = illumination_tabel[lcd->bl];
+#endif	
 	generate_gamma(&(lcd->smart),gen_gamma,gen_table_max);
 	
 	for(i=0;i<gen_table_max;i++) {
@@ -790,6 +807,30 @@ static int get_gamma_value_from_bl(int bl)
 {
 	int gamma_value =0;
 	int gamma_val_x10 =0;
+	
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	if (unlikely(!lcd.auto_brightness && bl > 250))	bl = 250;
+  
+        	switch (bl) {
+		case 0 ... 29:
+		gamma_value = 0; // 30cd
+		break;
+
+		case 30 ... 254:
+		gamma_value = (bl - candela_table[0]) / 10;
+		break;
+
+		case 255:
+		gamma_value = CANDELA_TABLE_SIZE - 1;
+		break;
+					
+	        	default:
+	              DPRINT("%s >>> bl_value:%d , do not gamma_update. \n ",__func__,bl);
+	              break;
+        	}
+      
+	DPRINT("%s >>> bl_value:%d, gamma_value: %d. \n ",__func__,bl,gamma_value);	
+#else
 
 	if(bl >= MIN_BL){
 		gamma_val_x10 = 10 *(MAX_GAMMA_VALUE-1)*bl/(MAX_BL-MIN_BL) + (10 - 10*(MAX_GAMMA_VALUE-1)*(MIN_BL)/(MAX_BL-MIN_BL));
@@ -797,7 +838,7 @@ static int get_gamma_value_from_bl(int bl)
 	}else{
 		gamma_value =0;
 	}
-	
+#endif	
 	return gamma_value;
 }
 static void lcdc_s6e63m0_set_backlight(struct msm_fb_data_type *mfd)
@@ -932,6 +973,31 @@ static void s6e63m0_set_acl(struct s6e63m0 *lcd)
 	int ret = 0;
 
 	if (lcd->acl_enable) {	
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+		switch (candela_table[lcd->bl]) {
+		case 30 ... 40: /* 30cd ~ 40cd */
+			if (lcd->cur_acl != 0) {
+			setting_table_write(ACL_cutoff_set[0]);
+			DPRINT("ACL_cutoff_set Percentage : off!!\n");
+			lcd->cur_acl = 0;
+			}
+			break;
+		case 50 ... 250: /* 50cd ~ 250cd */
+			if (lcd->cur_acl != 40) {
+			setting_table_write(ACL_cutoff_set[1]);
+			DPRINT("ACL_cutoff_set Percentage : 40!!\n");
+			lcd->cur_acl = 40;
+			}
+			break;	
+		default: /* 300cd */
+			if (lcd->cur_acl != 50) {
+			setting_table_write(ACL_cutoff_set[6]);
+			DPRINT("ACL_cutoff_set Percentage : 50!!\n");
+			lcd->cur_acl = 50;
+			}
+			break;
+		}
+#else
 		switch (lcd->bl) {
 		case 0 ... 3: /* 30cd ~ 60cd */
 			if (lcd->cur_acl != 0) {
@@ -955,6 +1021,7 @@ static void s6e63m0_set_acl(struct s6e63m0 *lcd)
 			}
 			break;
 		}
+#endif
 	}
 	else{
 			setting_table_write(ACL_cutoff_set[0]);
@@ -1160,6 +1227,35 @@ static ssize_t s6e63m0_sysfs_store_lcd_power(struct device *dev,
 static DEVICE_ATTR(lcd_power, 0664,
 		NULL, s6e63m0_sysfs_store_lcd_power);
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+static ssize_t lcd_sysfs_store_auto_brightness(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t len)
+{
+	int value;
+	int rc;
+	
+	dev_info(dev, "lcd_sysfs_store_auto_brightness\n");
+
+	rc = strict_strtoul(buf, (unsigned int)0, (unsigned long *)&value);
+	if (rc < 0)
+		return rc;
+	else {
+		if (lcd.auto_brightness != value) {
+			dev_info(dev, "%s - %d, %d\n", __func__, lcd.auto_brightness, value);
+			mutex_lock(&(lcd.lock));
+			lcd.auto_brightness = value;
+			mutex_unlock(&(lcd.lock));
+		}
+	}
+	return len;
+}
+
+static DEVICE_ATTR(auto_brightness, 0664,
+		NULL, lcd_sysfs_store_auto_brightness);
+
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void s6e63m0_early_suspend(struct early_suspend *h) {
 
@@ -1236,7 +1332,9 @@ static int __devinit s6e63m0_probe(struct platform_device *pdev)
 
 	lcd.acl_enable = 1;
 	lcd.cur_acl = 0;
-
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	lcd.auto_brightness = 0;
+#endif
 	ret = device_create_file(sysfs_panel_dev, &dev_attr_power_reduce);
 	if (ret < 0)
 		dev_err(&(pdev->dev), "failed to add sysfs entries\n");
@@ -1258,13 +1356,28 @@ static int __devinit s6e63m0_probe(struct platform_device *pdev)
 	// mdnie sysfs create
 	init_mdnie_class();
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+    
+      struct backlight_device *pbd = NULL;
+      pbd = backlight_device_register("panel", NULL, NULL,NULL,NULL);
+      if (IS_ERR(pbd)) {
+        DPRINT("Could not register 'panel' backlight device\n");
+      }
+      else
+      {
+        ret = device_create_file(&pbd->dev, &dev_attr_auto_brightness);
+        if (ret < 0)
+          DPRINT("auto_brightness failed to add sysfs entries\n");
+      }
+
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	lcd.early_suspend.suspend = s6e63m0_early_suspend;
 	lcd.early_suspend.resume = s6e63m0_late_resume;
 	lcd.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
 	register_early_suspend(&lcd.early_suspend);
 #endif
-
 
 #ifdef SMART_MTP
      lcd.bMtpFirstReadFail= false;

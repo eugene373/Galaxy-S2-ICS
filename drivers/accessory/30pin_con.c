@@ -659,7 +659,7 @@ static int acc_con_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct acc_con_info *acc = platform_get_drvdata(pdev);
 	ACC_CONDEV_DBG("");
-#ifdef CONFIG_MHL_SII9234
+#if 0 //def CONFIG_MHL_SII9234
 	if ((acc->current_dock == DOCK_DESK) || (acc->current_dock == DOCK_KEYBOARD))
 		MHD_HW_Off();   /*call MHL deinit */
 #endif
@@ -670,7 +670,7 @@ static int acc_con_resume(struct platform_device *pdev)
 {
 	struct acc_con_info *acc = platform_get_drvdata(pdev);
 	ACC_CONDEV_DBG("");
-#ifdef CONFIG_MHL_SII9234
+#if 0 //def CONFIG_MHL_SII9234
 	if ((acc->current_dock == DOCK_DESK) || (acc->current_dock == DOCK_KEYBOARD))
 		sii9234_tpi_init();  /* call MHL init */
 #endif

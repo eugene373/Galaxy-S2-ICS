@@ -399,6 +399,42 @@ static int load_ampgain(void)
 #else
 	g_ampgain[3].bSpNg_DetectionLv = 4;
 #endif
+
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+		g_ampgain[0].bSpNg_DetectionLv = 0;
+		g_ampgain[0].bSpNg_AttackTime = 0;
+		g_ampgain[0].bSpNcpl_NonClipRatio = 0;
+		g_ampgain[0].bSpNcpl_PowerLimit = 0;
+		g_ampgain[0].bSpNcpl_AttackTime = 1;
+		g_ampgain[0].bSpNcpl_ReleaseTime = 1;
+
+		g_ampgain[1].bSpNg_DetectionLv = 2; /* SP Noise Gate : detection level */
+		g_ampgain[1].bSpNg_AttackTime = 1;		/* SP Noise Gate : attack time */
+		g_ampgain[1].bSpNcpl_NonClipRatio = 1;	/* SP Non-Clip power limiter : Non-Clip distortion ratio */
+		g_ampgain[1].bSpNcpl_PowerLimit = 0;	/* SP Non-Clip power limiter : Power Limit */
+		g_ampgain[1].bSpNcpl_AttackTime = 1;	/* SP Non-Clip power limiter : attack Time */
+		g_ampgain[1].bSpNcpl_ReleaseTime = 1;	/* SP Non-Clip power limiter : release Time */
+
+		g_ampgain[2].bSpNg_DetectionLv = 0; /* SP Noise Gate : detection level */
+		g_ampgain[2].bSpNg_AttackTime = 1;		/* SP Noise Gate : attack time */
+		g_ampgain[2].bSpNcpl_NonClipRatio = 6;	/* SP Non-Clip power limiter : Non-Clip distortion ratio */
+		g_ampgain[2].bSpNcpl_PowerLimit = 0;	/* SP Non-Clip power limiter : Power Limit */
+		g_ampgain[2].bSpNcpl_AttackTime = 1;	/* SP Non-Clip power limiter : attack Time */
+		g_ampgain[2].bSpNcpl_ReleaseTime = 1;	/* SP Non-Clip power limiter : release Time */
+
+		g_ampgain[3].bSpNg_AttackTime = 0;		/* SP Noise Gate : attack time */
+		g_ampgain[3].bSpNcpl_NonClipRatio = 1;	/* SP Non-Clip power limiter : Non-Clip distortion ratio */
+		g_ampgain[3].bSpNcpl_PowerLimit = 1;	/* SP Non-Clip power limiter : Power Limit */
+		g_ampgain[3].bSpNcpl_AttackTime = 0;	/* SP Non-Clip power limiter : attack Time */
+		g_ampgain[3].bSpNcpl_ReleaseTime = 1;	/* SP Non-Clip power limiter : release Time */
+
+		g_ampgain[4].bSpNg_DetectionLv = 0; /* SP Noise Gate : detection level */
+		g_ampgain[4].bSpNg_AttackTime = 1;		/* SP Noise Gate : attack time */
+		g_ampgain[4].bSpNcpl_NonClipRatio = 0;	/* SP Non-Clip power limiter : Non-Clip distortion ratio */
+		g_ampgain[4].bSpNcpl_PowerLimit = 0;	/* SP Non-Clip power limiter : Power Limit */
+		g_ampgain[4].bSpNcpl_AttackTime = 1;	/* SP Non-Clip power limiter : attack Time */
+		g_ampgain[4].bSpNcpl_ReleaseTime = 1;	/* SP Non-Clip power limiter : release Time */
+#else
 		g_ampgain[0].bSpNg_DetectionLv = 0;
 		g_ampgain[0].bSpNg_AttackTime = 1;
 		g_ampgain[0].bSpNcpl_NonClipRatio = 0;
@@ -432,6 +468,7 @@ static int load_ampgain(void)
 		g_ampgain[4].bSpNcpl_PowerLimit = 0;	/* SP Non-Clip power limiter : Power Limit */
 		g_ampgain[4].bSpNcpl_AttackTime = 1;	/* SP Non-Clip power limiter : attack Time */
 		g_ampgain[4].bSpNcpl_ReleaseTime = 1;	/* SP Non-Clip power limiter : release Time */
+#endif
 #endif
 
 
@@ -1209,7 +1246,7 @@ void D4Hp3_PowerOn(D4HP3_SETTING_INFO *pstSettingInfo)
 					| (pstSettingInfo->bLine1Balance << (D4HP3_DIFA & 0xFF))
 					| (pstSettingInfo->bLine2Balance << (D4HP3_DIFB & 0xFF))
 
-#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_KOR_MODEL_SHV_E120S) || defined (CONFIG_KOR_MODEL_SHV_E120K) || defined (CONFIG_JPN_MODEL_SC_03D) || defined (CONFIG_Q1_KOR_AUDIO)
+#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_KOR_MODEL_SHV_E120S) || defined (CONFIG_KOR_MODEL_SHV_E120K) || defined (CONFIG_JPN_MODEL_SC_03D)
 					| (0x00 << (D4HP3_HIZ_HP & 0xFF))
 #elif defined (HP_HIZ_ON)
 					| (0x01 << (D4HP3_HIZ_HP & 0xFF))
@@ -1353,6 +1390,8 @@ void yda165_speaker_onoff(int onoff) /* speaker path amp onoff */
 		stInfo.bHpSvol = 0;				/* HP soft volume setting, on(0) / off(1) */
 
 #if defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_USA_MODEL_SGH_T769)
+        stInfo.bHpZcs = 0;				/* HP zero cross mute setting, on(0) / off(1) */
+#elif defined (CONFIG_EUR_MODEL_GT_I9210)
         stInfo.bHpZcs = 0;				/* HP zero cross mute setting, on(0) / off(1) */
 #else
         stInfo.bHpZcs = 1;				/* HP zero cross mute setting, on(0) / off(1) */
@@ -2087,6 +2126,80 @@ void yda165_speaker_headset_onoff(int onoff) /* speaker+headset path amp onoff *
 			yd->power_off();
 	}
 }
+
+#ifdef CONFIG_EUR_MODEL_GT_I9210
+void yda165_lineout_onoff(int onoff) /* lineout path amp onoff */
+{
+	D4HP3_SETTING_INFO stInfo;
+
+	struct yda165_i2c_data *yd ;
+	yd = &g_data;
+
+	if (onoff)
+	{
+		if(yd->power_on)
+			yd->power_on();
+
+		cur_mode = 5;
+		pr_info(MODULE_NAME ":lineout on[cur_mode:%d]\n", cur_mode);
+
+		/* input */
+		stInfo.bLine1Gain = g_ampgain[cur_mode].in1_gain;		/* LINE1 Gain Amp */
+		stInfo.bLine2Gain = g_ampgain[cur_mode].in2_gain;		/* LINE2 Gain Amp */
+
+		stInfo.bLine1Balance = 0;	/* LINE1 Single-ended(0) or Differential(1) */
+		stInfo.bLine2Balance = 0;	/* LINE2 Single-ended(0) or Differential(1) */
+
+		/* HP */
+		stInfo.bHpCpMode = 0;			/* HP charge pump mode setting, 3stage mode(0) / 2stage mode(1) */
+		
+		if(get_hw_rev() < 0x6) // rev0.6
+			stInfo.bHpAvddLev = 0;
+		else
+			stInfo.bHpAvddLev = 1;		/* HP charge pump AVDD level, 1.65V<=AVDD<2.40V(0) / 2.40V<=AVDD<=2.86V(1) */
+				
+		stInfo.bHpEco = 0;				/* HP eco mode, normal(0) / eco mode(1) */
+		stInfo.bHpAtt = g_ampgain[cur_mode].hp_att;				/* HP attenuator */
+		stInfo.bHpGainUp = g_ampgain[cur_mode].hp_gainup;			/* HP gain up */
+		stInfo.bHpSvol = 0;				/* HP soft volume setting, on(0) / off(1) */
+
+	        stInfo.bHpZcs = 0;				/* HP zero cross mute setting, on(0) / off(1) */
+
+		stInfo.bHpCh = 0;				/* HP channel, stereo(0)/mono(1) */
+		stInfo.bHpMixer_Line1 = 1;		/* HP mixer LINE1 setting */
+		stInfo.bHpMixer_Line2 = 0;		/* HP mixer LINE2 setting */
+
+		/* SP */
+		stInfo.bSpAtt = g_ampgain[cur_mode].sp_att;				/* SP attenuator */
+		stInfo.bSpGainUp = g_ampgain[cur_mode].sp_gainup;			/* SP gain up */
+		stInfo.bSpSvol = 0;				/* SP soft volume setting, on(0) / off(1) */
+		stInfo.bSpZcs = 0;				/* SP zero cross mute setting, on(0) / off(1) */
+
+	        /* using L/RIN1->EAR_L/R , L/RIN2->SPK_L/R */
+	        stInfo.bSpMixer_Line1 = 0;		/* SP mixer LINE1 setting */
+	        stInfo.bSpMixer_Line2 = 0;		/* SP mixer LINE2 setting */
+
+		stInfo.bSpNg_DetectionLv = 2;
+		stInfo.bSpNg_AttackTime = 1;
+		stInfo.bSpNcpl_NonClipRatio = 1;
+		stInfo.bSpNcpl_PowerLimit = 0;
+		stInfo.bSpNcpl_AttackTime = 1;
+		stInfo.bSpNcpl_ReleaseTime = 1;
+
+		D4Hp3_PowerOn(&stInfo);
+	}
+	else
+	{
+		pr_info(MODULE_NAME ":lineout off\n");
+		
+		D4Hp3_PowerOff();
+		
+		if(yd->power_off)
+			yd->power_off();
+	}
+}
+#endif
+
 void yda165_tty_onoff(int onoff) /* tty path amp onoff */
 {
 	D4HP3_SETTING_INFO stInfo;

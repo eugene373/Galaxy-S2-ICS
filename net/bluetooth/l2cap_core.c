@@ -402,26 +402,27 @@ static void l2cap_chan_del(struct l2cap_chan *chan, int err)
 
 		chan->conn = NULL;
 
-/* BEGIN SS_BLUEZ_BT +kjh 2011.06.23 : */
-/* workaround for a2dp chopping in multi connection.*/
-	switch (chan->psm) {
-	case 0x03:
-		rfc_conn = NULL;
-		break;
-	case 0x11:
-		hid_conn = NULL;
-		break;
-	case 0x17:
-		av_conn = NULL;
-		break;
-	default:
-		break;
-	}
-/* END SS_BLUEZ_BT */
+	/* BEGIN SS_BLUEZ_BT +kjh 2011.06.23 : */
+	/* workaround for a2dp chopping in multi connection.*/
+		switch (chan->psm) {
+		case 0x03:
+			rfc_conn = NULL;
+			break;
+		case 0x11:
+			hid_conn = NULL;
+			break;
+		case 0x17:
+			av_conn = NULL;
+			break;
+		default:
+			break;
+		}
+	/* END SS_BLUEZ_BT */
 
-		if (conn->hcon)
+		if (conn->hcon) {
 			conn->hcon->out = 1;
 		hci_conn_put(conn->hcon);
+		}
 	}
 
 	l2cap_state_change(chan, BT_CLOSED);

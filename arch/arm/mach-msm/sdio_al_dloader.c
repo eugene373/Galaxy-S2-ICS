@@ -1204,7 +1204,16 @@ static void sdio_dld_close(struct tty_struct *tty, struct file *file)
 
 	sdio_dld_dealloc_local_buffers();
 
+    /* When multiple locks must be acquired, they should always be acquired in
+     * the same order. This func will be invoked from tty_release with obtaining the BTM. 
+     * then tty_mutex will be acquired in tty_unregister_device.
+     * Since the order of locks on tty_release func is tty_mutex then BTM, 
+     * We release the BTM to avoid the race with tty_mutex and BTM */
+    tty_unlock();
+
 	tty_unregister_device(sdio_dld->tty_drv, 0);
+
+    tty_lock();
 
 	status = tty_unregister_driver(sdio_dld->tty_drv);
 

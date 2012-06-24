@@ -536,13 +536,13 @@ static long m5mo_set_zoom(	int8_t level)
 	int zoom[] = { 1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15, 17, 18, 19,
 		20, 21, 22, 24, 25, 26, 28, 29, 30, 31, 32, 34, 35, 36, 38, 39};
 
-	CAM_DEBUG("level:%d (reg value : %d)",level,zoom[level]);
-
 	if(level < 0 || level > 30 )	{
 		cam_err("Invalid Zoom Level !!!");
 		level = 0;
 	}
 	
+	CAM_DEBUG("level:%d (reg value : %d)",level,zoom[level]);
+
 	/* Start Digital Zoom */
 	err = m5mo_writeb(M5MO_CATEGORY_MON, M5MO_MON_ZOOM, zoom[level]); 
 	CHECK_ERR(err);

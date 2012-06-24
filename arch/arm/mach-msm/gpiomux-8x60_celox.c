@@ -366,7 +366,11 @@ static struct gpiomux_setting uart1dm_active = {
 static struct gpiomux_setting uart1dm_suspended = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
+#if defined(CONFIG_USA_MODEL_SGH_I757)
+	.pull = GPIOMUX_PULL_UP,
+#else
 	.pull = GPIOMUX_PULL_DOWN,
+#endif
 };
 
 static struct gpiomux_setting mi2s_active_cfg = {

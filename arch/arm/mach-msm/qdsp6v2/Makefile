@@ -8,7 +8,15 @@ else ifdef CONFIG_USA_MODEL_SGH_I577
 obj-y += board-msm8x60-audio_a2.o
 else ifdef CONFIG_USA_MODEL_SGH_I757
 obj-y += board-msm8x60-audio-CELOXHD.o
-else ifeq ($(SEC_PROJECT_REGION_OPERATOR),P5LTE_USA_ATT)
+else ifdef CONFIG_USA_MODEL_SGH_I957
+obj-y += board-msm8x60-audio-P5LTE.o
+else ifdef CONFIG_KOR_MODEL_SHV_E140S
+obj-y += board-msm8x60-audio-P5LTE.o
+else ifdef CONFIG_KOR_MODEL_SHV_E140K
+obj-y += board-msm8x60-audio-P5LTE.o
+else ifdef CONFIG_KOR_MODEL_SHV_E140L
+obj-y += board-msm8x60-audio-P5LTE.o
+else ifeq ($(SEC_PROJECT_REGION_OPERATOR),P4LTE_JPN_NTT)
 obj-y += board-msm8x60-audio-P5LTE.o
 else
 obj-y += board-msm8x60-audio.o

@@ -50,6 +50,8 @@
 #ifdef SEC_AUDIO_DEVICE // don't remove this feature
 #if defined(CONFIG_USA_MODEL_SGH_T989 )
 #include "timpani_profile_celox_tmo.h"
+#elif defined(CONFIG_EUR_MODEL_GT_I9210)
+#include "timpani_profile_celox_eur.h"
 #elif ( defined(CONFIG_USA_MODEL_SGH_I727) || defined(CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_I757)) 
 #include "timpani_profile_celox_att.h"
 #elif defined(CONFIG_JPN_MODEL_SC_03D)
@@ -68,6 +70,12 @@
 #include "timpani_profile_quincy_lgt.h"
 #elif defined(CONFIG_USA_MODEL_SGH_I957)  //P5LTE-ATT
 #include "timpani_profile_p5lte_att.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140S)  //P5LTE-SKT
+#include "timpani_profile_p5lte_skt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140K)  //P5LTE-KT
+#include "timpani_profile_p5lte_kt.h"
+#elif defined(CONFIG_KOR_MODEL_SHV_E140L)  //P5LTE-LGU
+#include "timpani_profile_p5lte_lgt.h"
 #else
 #include "timpani_profile_celox_kor.h"
 #endif
@@ -344,9 +352,15 @@ void msm_snddev_audience_call_route_speaker_config(void)
 		return 0;
 #endif 
 
+#ifdef CONFIG_EUR_MODEL_GT_I9210
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);	
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1); //switch  to I2S QTR
+	pr_debug("[AUD] Audience bypass \n");
+#else
 	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 0); //switch  to I2S audience
 	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_INCALL_SPEAKER);	
 	pr_debug("[AUD] AUD Path \n");
+#endif
 
 	return;
 }
@@ -578,7 +592,7 @@ static int msm_snddev_poweramp_handset_on(void)
 {
 	pr_info("%s: enable handset amp\n", __func__);
 #ifdef CONFIG_VP_A2220
-	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);	
+	a2220_ioctl2(A2220_SET_CONFIG, A2220_PATH_SUSPEND);	
 	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1); //switch  to I2S QTR
 	pr_debug("[AUD] QTR Path \n");
 #endif
@@ -733,9 +747,15 @@ void msm_snddev_audience_call_route_headset_config(void)
 		return 0;
 #endif 
 
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1); //switch  to I2S audience
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);	
+	pr_debug("[AUD] QTR Path \n");
+#else
 	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 0); //switch  to I2S audience
 	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_INCALL_HEADSET);	
 	pr_debug("[AUD] AUD Path \n");
+#endif
 
 	return;
 }
@@ -787,7 +807,7 @@ void  msm_snddev_audience_poweramp_off_headset(void)
 }
 #endif
 
-#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_I757) 
+#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_I757) || defined (CONFIG_USA_MODEL_SGH_T769)
 int msm_snddev_poweramp_on_headset_call(void)
 {
 #ifdef CONFIG_SENSORS_YDA165
@@ -892,6 +912,30 @@ void msm_snddev_poweramp_off_together(void)
 #endif
 	pr_info("%s: power off amplifier\n", __func__);
 }
+
+#ifdef CONFIG_EUR_MODEL_GT_I9210
+int msm_snddev_poweramp_on_lineout_I9210(void)
+{
+#if defined(CONFIG_VP_A2220)
+	a2220_ioctl2(A2220_SET_CONFIG , A2220_PATH_SUSPEND);	
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1); //switch  to I2S QTR
+	pr_debug("[AUD] QTR Path \n");
+#endif
+
+#ifdef CONFIG_SENSORS_YDA165
+	yda165_lineout_onoff(1);
+#endif
+	return 0;
+}
+
+int msm_snddev_poweramp_off_lineout_I9210(void)
+{
+#ifdef CONFIG_SENSORS_YDA165
+	yda165_lineout_onoff(0);
+#endif
+	return 0;
+}
+#endif
 
 #if defined (CONFIG_TARGET_LOCALE_KOR)
 static struct regulator *snddev_reg_l1;
@@ -1083,6 +1127,26 @@ static void msm_snddev_voltage_off(void)
 }
 
 #ifdef CONFIG_VP_A2220
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+static int msm_snddev_setting_audience_loopback_on(void)
+{
+	pr_info("%s()\n", __func__);
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1);
+	a2220_ioctl2(A2220_SET_CONFIG, A2220_PATH_SUSPEND);
+
+	return;
+}
+
+static int msm_snddev_setting_audience_loopback_off(void)
+{
+	pr_info("%s()\n", __func__);
+	gpio_set_value(GPIO_SELECT_I2S_AUDIENCE_QTR, 1);
+	a2220_ioctl2(A2220_SET_CONFIG, A2220_PATH_SUSPEND);
+
+	return;
+}
+#endif
+
 static int msm_snddev_setting_audience_call_connect(void)
 {
 #if defined(CONFIG_USA_MODEL_SGH_T989) && defined(AUDIENCE_SUSPEND)
@@ -1724,7 +1788,7 @@ static struct adie_codec_action_unit fm_radio_speaker_rx_48KHz_osr256_actions[] 
 ADIE_SPEAKER_RX_48000_256;
 
 // ------- DEFINITION OF EXTERNAL DEVICES ------ 
-#if defined (CONFIG_TARGET_LOCALE_KOR)
+#if defined (CONFIG_TARGET_LOCALE_KOR) || defined(CONFIG_EUR_MODEL_GT_I9210)
 static struct adie_codec_action_unit lineout_rx_48KHz_osr256_actions[] =
 ADIE_LINEOUT_RX_48000_256;
 #else
@@ -2704,7 +2768,7 @@ static struct snddev_icodec_data headset_vt_rx_data = {
 	//	.profile = &headset_ab_cpls_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717)
+#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_T769)
 	.pamp_on = msm_snddev_poweramp_on_headset_call,
 	.pamp_off = msm_snddev_poweramp_off_headset_call,
 #else	
@@ -2872,7 +2936,7 @@ static struct snddev_icodec_data headset_voip_rx_data = {
 	.profile = &headset_voip_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717)
+#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_T769)
 	.pamp_on = msm_snddev_poweramp_on_headset_call,
 	.pamp_off = msm_snddev_poweramp_off_headset_call,
 #else	
@@ -3347,6 +3411,9 @@ static struct snddev_icodec_data lineout_rx_data = {
 #elif defined(CONFIG_TARGET_LOCALE_KOR)
 	.pamp_on = msm_snddev_poweramp_on_lineout,
 	.pamp_off = msm_snddev_poweramp_off_lineout,	
+#elif defined(CONFIG_EUR_MODEL_GT_I9210)
+	.pamp_on = msm_snddev_poweramp_on_lineout_I9210,
+	.pamp_off = msm_snddev_poweramp_off_lineout_I9210,
 #else
 	.pamp_on = msm_snddev_poweramp_on_headset,
 	.pamp_off = msm_snddev_poweramp_off_headset,
@@ -3362,7 +3429,7 @@ static struct snddev_icodec_data tty_headset_rx_data = {
 	.profile = &tty_headset_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717)
+#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_T769)
 	.pamp_on = msm_snddev_poweramp_on_headset_call,
 	.pamp_off = msm_snddev_poweramp_off_headset_call,
 #else	
@@ -3459,8 +3526,8 @@ static struct snddev_icodec_data handset_call2_rx_data = {
 	.channel_mode = 1,
 	.default_sample_rate = AUDIO_FREQUENCY,
 #ifdef CONFIG_VP_A2220
-	.pamp_on = msm_snddev_setting_audience_call_connect,
-	.pamp_off = msm_snddev_setting_audience_call_disconnect,
+	.pamp_on = msm_snddev_poweramp_handset_on, //msm_snddev_setting_audience_call_connect,
+	.pamp_off = msm_snddev_poweramp_handset_off, //msm_snddev_setting_audience_call_disconnect,
 #endif
 };
 
@@ -3704,7 +3771,7 @@ static struct snddev_icodec_data headset_voip2_rx_data = {
 	.profile = &headset_voip2_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717)
+#if defined (CONFIG_USA_MODEL_SGH_T989)  || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_USA_MODEL_SGH_T769)
 	.pamp_on = msm_snddev_poweramp_on_headset_call,
 	.pamp_off = msm_snddev_poweramp_off_headset_call,
 #else	
@@ -4001,8 +4068,13 @@ static struct snddev_icodec_data handset_loopback_rx_data = {
 	.channel_mode = 1,
 	.default_sample_rate = AUDIO_FREQUENCY,
 #ifdef CONFIG_VP_A2220
+#if defined(CONFIG_EUR_MODEL_GT_I9210)
+	.pamp_on = msm_snddev_setting_audience_loopback_on,
+	.pamp_off = msm_snddev_setting_audience_loopback_off,
+#else
 	.pamp_on = msm_snddev_setting_audience_call_connect,
 	.pamp_off = msm_snddev_setting_audience_call_disconnect,
+#endif
 #endif
 };
 

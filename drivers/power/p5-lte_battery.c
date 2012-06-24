@@ -980,6 +980,7 @@ static struct device_attribute p5_battery_attrs[] = {
 #endif
 #if 1 //def CONFIG_SAMSUNG_LPM_MODE	
 	SEC_BATTERY_ATTR(charging_mode_booting),
+	SEC_BATTERY_ATTR(batt_lp_charging),
 	SEC_BATTERY_ATTR(voltage_now),
 #endif	
 };
@@ -1009,6 +1010,7 @@ enum {
 #endif
 #if 1 //def CONFIG_SAMSUNG_LPM_MODE	
 	CHARGING_MODE_BOOTING,
+	BATT_LP_CHARGING,
 	VOLTAGE_NOW,
 #endif	
 };
@@ -1122,6 +1124,7 @@ static ssize_t p5_bat_show_property(struct device *dev,
 #endif
 #if 1 //def CONFIG_SAMSUNG_LPM_MODE		
 	case CHARGING_MODE_BOOTING:
+	case BATT_LP_CHARGING:
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 			test_batterydata->charging_mode_booting);
 		break;

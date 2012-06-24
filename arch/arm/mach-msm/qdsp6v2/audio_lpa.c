@@ -125,7 +125,7 @@ static long pcm_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 static int audlpa_set_pcm_params(void *data);
 
 // use msm_set_volume() for stream mute control
-#define LPA_MUTE_CTRL
+// #define LPA_MUTE_CTRL
 
 
 #ifdef LPA_MUTE_CTRL
@@ -215,7 +215,7 @@ static int audio_enable(struct audio *audio)
 
 }
 
-static void audlpa_async_flush(struct audio *audio)
+static int audlpa_async_flush(struct audio *audio)
 {
 	struct audlpa_buffer_node *buf_node;
 	struct list_head *ptr, *next;
@@ -263,6 +263,8 @@ static void audlpa_async_flush(struct audio *audio)
 		}
 		wake_up(&audio->write_wait);
 	}
+
+	return rc;
 }
 
 /* must be called with audio->lock held */
@@ -768,8 +770,8 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 
 	case AUDIO_SET_VOLUME:
-		//pr_debug("AUDIO_SET_VOLUME %d, audio->volume=%d", arg, audio->volume);
-		pr_info("AUDIO_SET_VOLUME %d, audio->volume=%d, mute=%d", (int)arg, audio->volume, audlpa_mute);
+		pr_debug("AUDIO_SET_VOLUME %d, audio->volume=%d", arg, audio->volume);
+		//pr_info("AUDIO_SET_VOLUME %d, audio->volume=%d, mute=%d", (int)arg, audio->volume, audlpa_mute);
 #ifdef LPA_MUTE_CTRL
 		audio->volume = arg;
 #endif
@@ -893,7 +895,9 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		pr_info("%s: AUDIO_STOP: session_id:%d\n", __func__,
 			audio->ac->session);
 		audio->stopped = 1;
-		audlpa_async_flush(audio);
+		rc = audlpa_async_flush(audio);
+		if (rc < 0)
+			pr_err("%s: Send flush command failed (in stop) rc=%d\n",__func__, rc);
 		audio->out_enabled = 0;
 		audio->out_needed = 0;
 		audio->drv_status &= ~ADRV_STATUS_PAUSE;
@@ -904,10 +908,15 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		pr_debug("%s: AUDIO_FLUSH: session_id:%d\n", __func__,
 			audio->ac->session);
 		audio->wflush = 1;
-		if (audio->out_enabled)
-			audlpa_async_flush(audio);
-		else
+		if (audio->out_enabled) {
+			rc = audlpa_async_flush(audio);
+			if (rc < 0)
+				pr_err("%s: Send flush command failed rc=%d\n",__func__, rc);
+        }
+		else {
 			audio->wflush = 0;
+			rc = 0;
+        }
 		audio->wflush = 0;
 		break;
 

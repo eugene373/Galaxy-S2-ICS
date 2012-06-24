@@ -2533,7 +2533,11 @@ wl_set_set_cipher(struct net_device *dev, struct cfg80211_connect_params *sme)
 	WL_DBG(("pval (%d) gval (%d)\n", pval, gval));
 
 	if (is_wps_conn(sme)) {
-		err = wldev_iovar_setint_bsscfg(dev, "wsec", 4, bssidx);
+		if (sme->privacy)
+			err = wldev_iovar_setint_bsscfg(dev, "wsec", 4, bssidx);
+		else
+			/* WPS-2.0 allowes no security */
+			err = wldev_iovar_setint_bsscfg(dev, "wsec", 0, bssidx);
 	} else {
 #ifdef BCMWAPI_WPI
 		if (sme->crypto.cipher_group == WLAN_CIPHER_SUITE_SMS4) {
@@ -2792,7 +2796,7 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 #ifdef ESCAN_RESULT_PATCH
 	/* connect_req_bssid is set to zero only if sme->bssid is NULL */
 	if (sme->bssid)
-	memcpy(connect_req_bssid, sme->bssid, ETHER_ADDR_LEN);
+		memcpy(connect_req_bssid, sme->bssid, ETHER_ADDR_LEN);
 	else
 		bzero(connect_req_bssid, ETHER_ADDR_LEN);
 	bzero(broad_bssid, ETHER_ADDR_LEN);

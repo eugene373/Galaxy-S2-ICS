@@ -47,7 +47,7 @@ static struct setting_table TABLE2_GAMMA_22_40[] = {
  {0xF9, 21, 
   { 0x00 ,0xD9   ,0xCE  ,0xCA   ,0xD9   ,0x00  ,0x4F,0x00 , 0xB5 , 0xCA, 0xC7 , 0xD8 ,0x00,0x61 ,0x00 , 0xD2 , 0xCE, 0xC6 , 0xD6 , 0x00,0x69 } , 0},
  };
-#if 0
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
 static struct setting_table TABLE2_GAMMA_22_50[] = {
  {0xF9, 21, 
   { 0x00   ,0xD6   ,0xCE  ,0xCA   ,0xD8   ,0x00  ,0x55 ,0x00 , 0xB9 , 0xCA, 0xC6 , 0xD6 ,0x00,0x69 ,0x00, 0xD1 , 0xCC, 0xC6 , 0xD5 ,0x00,0x71}, 0}, 
@@ -61,7 +61,7 @@ static struct setting_table TABLE2_GAMMA_22_70[] = {
 {0xF9, 21,
   { 0x00  ,0xD4  ,0xCD ,0xC7  ,0xD7  ,0x00 ,0x60 , 0x00 , 0xBC , 0xCB, 0xC4 , 0xD3 ,0x00,0x76 , 0x00 , 0xCF , 0xCC, 0xC3 , 0xD2 ,0x00,0x7F  }, 0},
  };
-#if 0
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
 static struct setting_table TABLE2_GAMMA_22_80[] = {
 {0xF9, 21,
   { 0x00  ,0xD2  ,0xCB ,0xC6  ,0xD7  ,0x00 ,0x65 , 0x00 , 0xC0 , 0xC9, 0xC3 , 0xD2 ,0x00,0x7C , 0x00 , 0xCE , 0xCA, 0xC2 , 0xD1 ,0x00,0x85  }, 0},
@@ -135,6 +135,7 @@ static struct setting_table TABLE2_GAMMA_22_250[] = {
 {0xF9, 21,
   { 0x00  ,0xCC  ,0xC5 ,0xBD  ,0xCA  ,0x00 ,0xA0 , 0x00 , 0xC3 , 0xC3, 0xB8 , 0xC4,0x00,0xC4 , 0x00 , 0xC8 , 0xC2, 0xB5  , 0xC3 ,0x00,0xD2  }, 0},
  };
+#if !defined(MAPPING_TBL_AUTO_BRIGHTNESS)
 static struct setting_table TABLE2_GAMMA_22_260[] = {
 {0xF9, 21,
   { 0x00  ,0xCD  ,0xC5 ,0xB6  ,0xC8  ,0x00 ,0xA3 , 0x00 , 0xC3 , 0xC3, 0xB6 , 0xC3 ,0x00,0xC8 , 0x00 , 0xC8 , 0xC3, 0xB4 , 0xC2 ,0x00,0xD5  }, 0},
@@ -151,11 +152,40 @@ static struct setting_table TABLE2_GAMMA_22_290[] = {
 {0xF9, 21,
   { 0x00  ,0xCB  ,0xC5 ,0xB8  ,0xC6  ,0x00 ,0xAA , 0x00 , 0xC3 , 0xC2, 0xB5 , 0xC1 ,0x00,0xCF , 0x00 , 0xC7 , 0xC2, 0xB2 , 0xBF ,0x00,0xDE  }, 0},
  };
+#endif
 static struct setting_table TABLE2_GAMMA_22_300[] = {
 {0xF9, 21,
   { 0x00  ,0xCA  ,0xC4 ,0xB8  ,0xC6  ,0x00 ,0xAB , 0x00 , 0xC3 , 0xC1, 0xB4 , 0xC0 ,0x00,0xD1 , 0x00 , 0xC6 , 0xC2, 0xB1 , 0xBF ,0x00,0xDF }, 0},
 };
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+static struct setting_table *lcd_brightness_table_2[] =  {
+	TABLE2_GAMMA_22_30_dimming,
+	TABLE2_GAMMA_22_40,
+	TABLE2_GAMMA_22_50,
+	TABLE2_GAMMA_22_60,
+	TABLE2_GAMMA_22_70,
+	TABLE2_GAMMA_22_80,
+	TABLE2_GAMMA_22_90,
+	TABLE2_GAMMA_22_100,
+	TABLE2_GAMMA_22_110,
+	TABLE2_GAMMA_22_120,
+	TABLE2_GAMMA_22_130,
+	TABLE2_GAMMA_22_140,
+	TABLE2_GAMMA_22_150,
+	TABLE2_GAMMA_22_160,
+	TABLE2_GAMMA_22_170,
+	TABLE2_GAMMA_22_180,
+	TABLE2_GAMMA_22_190,
+	TABLE2_GAMMA_22_200,
+	TABLE2_GAMMA_22_210,
+	TABLE2_GAMMA_22_220,
+	TABLE2_GAMMA_22_230,
+	TABLE2_GAMMA_22_240,
+	TABLE2_GAMMA_22_250,
+	TABLE2_GAMMA_22_300,
+};
+#else
 static struct setting_table *lcd_brightness_table_2[] =  {
 	TABLE2_GAMMA_22_30_dimming,
 	TABLE2_GAMMA_22_40,
@@ -183,6 +213,7 @@ static struct setting_table *lcd_brightness_table_2[] =  {
 	TABLE2_GAMMA_22_290,
 	TABLE2_GAMMA_22_300,
 };
+#endif
 
 // For 4.5"
 struct setting_table lcd_brightness_table_19gamma[] =  {
@@ -371,7 +402,7 @@ static struct setting_table GAMMA_22_40[] = {
     0x1E	,0xC0	,0xBB	,0xB8	,0xCD	,0x00	,0x56,
  } , 0},
  };
-#if 0
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
 static struct setting_table GAMMA_22_50[] = {
  {0xF9, 21, 
   { 0x1D	,0xA9	,0xC1	,0xBB	,0xCD	,0x00	,0x47,
@@ -394,7 +425,7 @@ static struct setting_table GAMMA_22_70[] = {
     0x1E	,0xBF	,0xB8	,0xB4	,0xCA	,0x00	,0x6C,
   }, 0},
   };
-#if 0
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
 static struct setting_table GAMMA_22_80[] = {
 {0xF9, 21,
   { 0x1D	,0xB5	,0xBC	,0xB8	,0xCA	,0x00	,0x57,
@@ -522,6 +553,7 @@ static struct setting_table GAMMA_22_250[] = {
     0x1E	,0xB4	,0xB3	,0xA8	,0xBC	,0x00	,0xB7,
   }, 0},
   };
+#if !defined(MAPPING_TBL_AUTO_BRIGHTNESS)
 static struct setting_table GAMMA_22_260[] = {
 {0xF9, 21,
   { 0x1D	,0xB9	,0xB8	,0xAB	,0xBE	,0x00	,0x92,
@@ -550,6 +582,7 @@ static struct setting_table GAMMA_22_290[] = {
     0x1E	,0xB4	,0xB0	,0xA6	,0xB9	,0x00	,0xC5,
  }, 0},
  };
+#endif
 static struct setting_table GAMMA_22_300[] = {
 {0xF9, 21,
   { 0x1D	,0xB7	,0xB5	,0xAB	,0xBC	,0x00	,0x9D,
@@ -558,6 +591,34 @@ static struct setting_table GAMMA_22_300[] = {
  }, 0},
 };
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+static struct setting_table *lcd_brightness_table_22gamma[] =  {
+	GAMMA_22_30_dimming,
+	GAMMA_22_40,
+	GAMMA_22_50,
+	GAMMA_22_60,
+	GAMMA_22_70,
+	GAMMA_22_80,
+	GAMMA_22_90,
+	GAMMA_22_100,
+	GAMMA_22_110,
+	GAMMA_22_120,
+	GAMMA_22_130,
+	GAMMA_22_140,
+	GAMMA_22_150,
+	GAMMA_22_160,
+	GAMMA_22_170,
+	GAMMA_22_180,
+	GAMMA_22_190,
+	GAMMA_22_200,
+	GAMMA_22_210,
+	GAMMA_22_220,
+	GAMMA_22_230,
+	GAMMA_22_240,
+	GAMMA_22_250,
+	GAMMA_22_300,
+};
+#else
 static struct setting_table *lcd_brightness_table_22gamma[] =  {
 	GAMMA_22_30_dimming,
 	GAMMA_22_40,
@@ -585,6 +646,7 @@ static struct setting_table *lcd_brightness_table_22gamma[] =  {
 	GAMMA_22_290,
 	GAMMA_22_300,
 };
+#endif
 
 struct setting_table ea8868_test_gamma[] =  {
 //30 _01

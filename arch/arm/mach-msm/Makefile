@@ -20,6 +20,10 @@ ifdef CONFIG_TARGET_SERIES_P5LTE
 BOARD_OBJ_NAME:=board-msm8x60_p5lte.o
 GPIOMUX_OBJ_NAME:=gpiomux-8x60_p5lte.o
 endif
+ifdef CONFIG_TARGET_SERIES_P4LTE
+BOARD_OBJ_NAME:=board-msm8x60_p4lte.o
+GPIOMUX_OBJ_NAME:=gpiomux-8x60_p4lte.o
+endif
 
 obj-y += io.o dma.o memory.o
 ifndef CONFIG_ARM_ARCH_TIMER

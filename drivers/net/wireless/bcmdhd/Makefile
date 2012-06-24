@@ -7,15 +7,8 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                     \
         -DMMC_SDIO_ABORT -DBCMSDIO -DBCMLXSDMMC -DBCMPLATFORM_BUS -DWLP2P     \
         -DNEW_COMPAT_WIRELESS -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT          \
         -DKEEP_ALIVE -DCSCAN -DPKT_FILTER_SUPPORT                             \
-        -DEMBEDDED_PLATFORM -DPNO_SUPPORT
+        -DEMBEDDED_PLATFORM
 
-	
-
-ifeq "$(shell $(CC) --version | grep gcc | sed 's/^.* //g')" "4.6.3"
-  # 4.6.3 toolchain has many false positives as above
-  DHDCFLAGS += -Wno-error=unused-but-set-variable
-  DHDCFLAGS += -Wno-error=array-bounds
-endif
 
 # distinguish between the 43xx chip
 ifeq ($(CONFIG_BCM4334),m)

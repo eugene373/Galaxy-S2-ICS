@@ -516,9 +516,12 @@ int akm8975_probe(struct i2c_client *client,
 	if(pdata->power_off)
 		akm->power_off = pdata->power_off;
 
-#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined(CONFIG_EUR_MODEL_GT_I9210)
+#if defined (CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined(CONFIG_EUR_MODEL_GT_I9210) \
+     ||	 defined(CONFIG_USA_MODEL_SGH_I577) 
 #if defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L)
 	if (get_hw_rev() >= 0x04 ) {
+#elif  defined(CONFIG_USA_MODEL_SGH_I577)
+	if (get_hw_rev() >= 0x06 ) {	
 #else 
 	if (get_hw_rev() >= 0x08 ) {
 #endif
@@ -532,7 +535,18 @@ int akm8975_probe(struct i2c_client *client,
 	/* For Magnetic sensor POR condition */ 
 	}
 #endif
-
+#if defined (CONFIG_USA_MODEL_SGH_I717)
+	if (get_hw_rev() >= 0x5) {
+		/* For Magnetic sensor POR condition */ 
+		if(pdata->power_on_mag)
+			pdata->power_on_mag();
+		msleep(1);
+		if(pdata->power_off_mag)
+			pdata->power_off_mag();
+		msleep(10);
+		/* For Magnetic sensor POR condition */ 
+	}
+#endif
 	if(akm->power_on)
 		akm->power_on();
 

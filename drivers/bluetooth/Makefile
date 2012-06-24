@@ -32,4 +32,3 @@ hci_uart-$(CONFIG_BT_HCIUART_ATH3K)	+= hci_ath.o
 hci_uart-$(CONFIG_BT_HCIUART_IBS)	+= hci_ibs.o
 hci_uart-objs				:= $(hci_uart-y)
 obj-$(CONFIG_BT_BCM4330)		+= bluesleep_bcm.o
-

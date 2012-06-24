@@ -599,18 +599,18 @@ endif
 
 config KEYPAD_CYPRESS_TOUCH
 	tristate "Cypress touch keypad support"
-	default y
+	default n
 	help
 	  Say Y here if you want to use the Cypress touch keypad.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called melfas-touchkey.
 
-config TOUCHKEY_BLN
-  bool "Backlight Notification Patch (BLN) for Cypress touch keypad "
-  depends on KEYPAD_CYPRESS_TOUCH
-  default y
-  help
-    Say Y here to enable the backlight notification
-    for android led-notification (modified liblight needed)
+config KEYPAD_CYPRESS_TOUCH_BLN
+	bool "Cypress touch keypad: use backlight notification"
+	depends on KEYPAD_CYPRESS_TOUCH
+	default y
+	help
+	  Say Y here to enable the backlight notification
+	  for android led-notification (modified liblight needed)
 

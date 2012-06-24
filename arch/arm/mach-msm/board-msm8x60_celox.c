@@ -694,7 +694,7 @@ static struct regulator_init_data saw_s0_init_data = {
 			.name = "8901_s0",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
 			.min_uV = 800000,
-			.max_uV = 1250000,
+			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S0,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S0),
@@ -705,7 +705,7 @@ static struct regulator_init_data saw_s1_init_data = {
 			.name = "8901_s1",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
 			.min_uV = 800000,
-			.max_uV = 1250000,
+			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S1,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S1),
@@ -1374,12 +1374,10 @@ static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
 		pr_err("%s: USB_ID is not routed to PMIC\n", __func__);
 		return -ENOTSUPP;
 	}
-/*
 	// for test check
 	//#elif defined (CONFIG_KOR_MODEL_SHV_E120L) || defined (CONFIG_KOR_MODEL_SHV_E120S) || defined (CONFIG_KOR_MODEL_SHV_E120K)\
 	//	|| defined (CONFIG_KOR_MODEL_SHV_E160S) || defined (CONFIG_KOR_MODEL_SHV_E160K) || defined (CONFIG_KOR_MODEL_SHV_E160L)
 	//	pr_err("%s: USB_ID is routed to PMIC \n", __func__);
-*/
 #else
 	pr_err("%s: USB_ID is not routed to PMIC\n", __func__);
 	return -ENOTSUPP;
@@ -1768,6 +1766,14 @@ fail:
 	return;
 }
 
+#ifdef CONFIG_USB_HOST_NOTIFY
+static void msm_hsusb_set_autosw_pba()
+{
+#ifdef CONFIG_USB_SWITCH_FSA9480
+	fsa9480_otg_set_autosw_pba();
+#endif
+}
+#endif
 
 #if defined(CONFIG_USB_GADGET_MSM_72K) || defined(CONFIG_USB_EHCI_MSM_72K)
 static struct msm_otg_platform_data msm_otg_pdata = {
@@ -1801,6 +1807,9 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.chg_vbus_draw = NULL,
 #endif
 	.ldo_set_voltage=msm_hsusb_ldo_set_voltage,
+#ifdef CONFIG_USB_HOST_NOTIFY
+	.set_autosw_pba   = msm_hsusb_set_autosw_pba,
+#endif
 };
 #endif
 
@@ -4238,11 +4247,15 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_ION_MM_FW_SIZE	0x200000 /* (2MB) */
 #define MSM_ION_MM_SIZE		0x3600000 /* (54MB) */
 #define MSM_ION_MFC_SIZE	SZ_8K
+#if defined (CONFIG_FB_MSM_MIPI_S6E8AA0_HD720_PANEL)
+#define MSM_ION_WB_SIZE 	0x1700000 /* 24MB */
+#else
 #define MSM_ION_WB_SIZE		0x1400000 /* 20MB */
+#endif
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define MSM_ION_HEAP_NUM	8
+#define MSM_ION_HEAP_NUM	7
 #else
 #define MSM_ION_HEAP_NUM	1
 #endif
@@ -5808,6 +5821,10 @@ static struct i2c_board_info cy8ctma340_dragon_board_info[] = {
 };
 #endif
 
+#if defined(CONFIG_USA_MODEL_SGH_I727) || defined(CONFIG_USA_MODEL_SGH_T989)
+#define JACK_WATERPROOF
+#endif
+
 #if defined(CONFIG_SAMSUNG_JACK) || defined (CONFIG_SAMSUNG_EARJACK)
 static struct sec_jack_zone jack_zones[] = {
         [0] = {
@@ -5823,8 +5840,6 @@ static struct sec_jack_zone jack_zones[] = {
         [1] = {
 #if defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_USA_MODEL_SGH_I577)
                 .adc_high       = 988,
-#elif defined (CONFIG_KOR_MODEL_SHV_E110S) && defined (CONFIG_PMIC8058_XOADC_CAL)
-                .adc_high       = 985,
 #else
                 .adc_high       = 980,
 #endif
@@ -5833,6 +5848,14 @@ static struct sec_jack_zone jack_zones[] = {
                 .jack_type      = SEC_HEADSET_3POLE,
         },
         [2] = {
+#if defined(JACK_WATERPROOF)
+                .adc_high       = 2700,
+                .delay_ms       = 10,
+                .check_count    = 10,
+                .jack_type      = SEC_HEADSET_4POLE,
+        },
+        [3] = {
+#endif
                 .adc_high       = 2700,
                 .delay_ms       = 10,
                 .check_count    = 10,
@@ -5843,10 +5866,10 @@ static struct sec_jack_zone jack_zones[] = {
                 .delay_ms       = 10,
                 .check_count    = 10,
                 .jack_type      = SEC_HEADSET_4POLE,
-        }, 
+        },
 };
 
-#ifdef CONFIG_USA_MODEL_SGH_I577
+#if defined (CONFIG_USA_MODEL_SGH_I577) || defined (CONFIG_USA_MODEL_SGH_T769)
 /* To support 3-buttons earjack */
 static struct sec_jack_buttons_zone jack_buttons_zones[] = {
 	{
@@ -5882,6 +5905,7 @@ EXPORT_SYMBOL(get_sec_det_jack_state);
 static int get_sec_send_key_state(void)
 {
 	// int state;
+	int rc = 0;	
 
 	struct pm_gpio ear_micbiase = {
 		.direction      = PM_GPIO_DIR_OUT,
@@ -5897,8 +5921,11 @@ static int get_sec_send_key_state(void)
 	if(get_sec_det_jack_state())
 	{
 //		pm8058_gpio_config(PMIC_GPIO_EAR_MICBIAS_EN, &ear_micbiase);
-		pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_EAR_MICBIAS_EN), &ear_micbiase);
-
+		rc = pm8xxx_gpio_config(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_EAR_MICBIAS_EN), &ear_micbiase);
+		if (rc) {
+			pr_err("%s PMIC_GPIO_EAR_MICBIAS_EN config failed\n", __func__);
+		}
+    
 		gpio_set_value_cansleep(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_EAR_MICBIAS_EN),1);	
 	}
 
@@ -7390,7 +7417,7 @@ static struct regulator_consumer_supply vreg_consumers_PM8901_S4_PC[] = {
 /* RPM early regulator constraints */
 static struct rpm_regulator_init_data rpm_regulator_early_init_data[] = {
 	/*	 ID       a_on pd ss min_uV   max_uV   init_ip    freq */
-	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1250000, SMPS_HMIN, 1p60),
+	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1350000, SMPS_HMIN, 1p60),
 	RPM_SMPS(PM8058_S1, 0, 1, 1,  500000, 1250000, SMPS_HMIN, 1p60),
 };
 
@@ -7557,13 +7584,16 @@ static struct platform_device *early_devices[] __initdata = {
 	&msm_device_dmov_adm1,
 };
 
+
 /* Bluetooth */
 #ifdef CONFIG_BT_BCM4330
 static struct platform_device bcm4330_bluetooth_device = {
-  .name = "bcm4330_bluetooth",
-  .id = -1,
+	.name = "bcm4330_bluetooth",
+	.id = -1,
 };
 #endif
+
+
 
 static struct platform_device msm_tsens_device = {
 	.name   = "tsens-tm",
@@ -7720,7 +7750,11 @@ void msm_snddev_audience_call_route_deconfig(void)
 }
 #endif //0 (-)dragonball
 
+#if defined(CONFIG_USA_MODEL_SGH_I757) || defined(CONFIG_CAN_MODEL_SGH_I757M)
+#define MSM_AUD_A2220_WAKEUP 	33
+#else
 #define MSM_AUD_A2220_WAKEUP 	34 // check done
+#endif
 #define MSM_AUD_A2220_RESET 	126 // check done
 #define MSM_AUD_A2220_CLK	0
 
@@ -8360,13 +8394,14 @@ unsigned int msm_adc_gpio_expander_disable(int cs_disable)
 #endif
 
 static struct msm_adc_channels msm_adc_channels_data[] = {
-	{"head_set", CHANNEL_ADC_HDSET, 0, &xoadc_fn, CHAN_PATH_TYPE9,
+
+		{"head_set", CHANNEL_ADC_HDSET, 0, &xoadc_fn, CHAN_PATH_TYPE9,	
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 	{"light_lux", CHANNEL_ADC_LIGHT_LUX, 0, &xoadc_fn, CHAN_PATH_TYPE7,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 	{"vichg", CHANNEL_ADC_CHG_MONITOR, 0, &xoadc_fn, CHAN_PATH_TYPE10,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_xtern_chgr_cur},
-	{"batt_id", CHANNEL_ADC_BATT_ID, 0, &xoadc_fn, CHAN_PATH_TYPE6,
+	{"batt_id", CHANNEL_ADC_BATT_ID, 0, &xoadc_fn, CHAN_PATH_TYPE6, 
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 #if defined (CONFIG_TARGET_LOCALE_USA)
 	{"batt_therm", CHANNEL_ADC_BATT_THERM, 0, &xoadc_fn, CHAN_PATH_TYPE8,
@@ -8412,13 +8447,13 @@ static void pmic8058_xoadc_mpp_config(void)
 {
 	int rc, i;
 	struct pm8xxx_mpp_init_info xoadc_mpps[] = {
-		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH8,
+		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH8, 
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_5, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH9,
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_4, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH6,
 							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5,
+		PM8058_MPP_INIT(XOADC_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5, 
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_10, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH7,
 							AOUT_CTRL_DISABLE),
@@ -8867,7 +8902,6 @@ static struct i2c_board_info melfas_board_info[] = {
 };
 #endif
 
-
 /*-----------------------MXT224  TOUCH DRIVER by Xtopher-----------------------*/
 #if defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_MXT768E)
 #define TSP_IRQ_READY_DELAY 45
@@ -9215,6 +9249,69 @@ static const u8 *mxt224e_config[] = {
 	end_config_e,
 };
 #else
+#if defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_T989)
+static u8 t7_config_e[] = {GEN_POWERCONFIG_T7,
+				48,		/* IDLEACQINT */
+				255,	/* ACTVACQINT */
+				25 		/* ACTV2IDLETO: 25 * 200ms = 5s */};
+static u8 t8_config_e[] = {GEN_ACQUISITIONCONFIG_T8,
+				27, 0, 5, 1, 0, 0, 5, 35, 40, 55};
+
+/* NEXTTCHDI added */
+static u8 t9_config_e[] = {TOUCH_MULTITOUCHSCREEN_T9,
+				139, 0, 0, 19, 11, 0, 32, 50, 2, 1,
+				10, 15, 1, 81, MXT224_MAX_MT_FINGERS, 5, 40, 10, 31, 3,
+				223, 1, 10, 10, 10, 10, 143, 40, 143, 80,
+				18, 15, 50, 50, 0};
+	
+
+static u8 t15_config_e[] = {TOUCH_KEYARRAY_T15,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t18_config_e[] = {SPT_COMCONFIG_T18, 0, 0};
+static u8 t23_config_e[] = {TOUCH_PROXIMITY_T23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t25_config_e[] = {SPT_SELFTEST_T25, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t40_config_e[] = {PROCI_GRIPSUPPRESSION_T40, 0, 0, 0, 0, 0};
+static u8 t42_config_e[] = {PROCI_TOUCHSUPPRESSION_T42, 0, 0, 0, 0, 0, 0, 0, 0};
+static u8 t46_config_e[] = {SPT_CTECONFIG_T46, 0, 3, 24, 26, 0, 0, 1, 0, 0};
+static u8 t47_config_e[] = {PROCI_STYLUS_T47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+static u8 t38_config_e[] = {SPT_USERDATA_T38, 0,1,15,19,45,40,0,0};
+
+
+static u8 t48_config_e_ta[] = {PROCG_NOISESUPPRESSION_T48,
+   				3, 132, 0x52, 0, 0, 0, 0, 0, 10, 15,
+				0, 0, 0, 6, 6, 0, 0, 64, 4, 64,
+				10, 0, 9, 5, 0, 15, 0, 20, 0, 0,
+				0, 0, 0, 0, 0, 40, 2,	15, 1, 47,  
+				MXT224_MAX_MT_FINGERS, 5, 40, 235, 235, 10, 10, 160, 60, 143,
+				80, 18, 15, 0};
+
+static u8 t48_config_e[] = {PROCG_NOISESUPPRESSION_T48,
+    				3, 132, 0x72, 20, 0, 0, 0, 0, 1, 2,
+   				0, 0, 0, 6, 6, 0, 0, 48, 4, 48,
+				10, 0, 9, 5, 0, 15, 0, 1, 0, 0,
+				0, 0, 0, 0, 0, 30, 2, 15,	1, 81,
+				MXT224_MAX_MT_FINGERS, 5, 40, 235, 235, 10, 10, 160, 60, 143,
+				80, 18, 15, 0};
+
+static u8 end_config_e[] = {RESERVED_T255};
+
+static const u8 *mxt224e_config[] = {
+	t7_config_e,
+	t8_config_e,
+	t9_config_e,
+	t15_config_e,
+	t18_config_e,
+	t23_config_e,
+	t25_config_e,
+	t40_config_e,
+	t42_config_e,
+	t46_config_e,
+	t47_config_e,
+	t48_config_e,
+	t38_config_e,//110927 gumi noise
+	end_config_e,
+};
+#else
 static u8 t7_config_e[] = {GEN_POWERCONFIG_T7,
 				48,		/* IDLEACQINT */
 				255,	/* ACTVACQINT */
@@ -9284,7 +9381,7 @@ static const u8 *mxt224e_config[] = {
 	end_config_e,
 };
 #endif
-
+#endif
 void mxt224_orient_branch(int orient_swap)
 {
 	if (orient_swap == MXT224_ORIENT_SWAP_NN ){
@@ -9544,9 +9641,11 @@ static struct platform_device *surf_devices[] __initdata = {
 	&msm_rpm_stat_device,
 #endif
 	&msm_device_vidc,
+	
 #if defined (CONFIG_BT_BCM4330)
     &bcm4330_bluetooth_device,
 #endif
+
 #ifdef CONFIG_SENSORS_MSM_ADC
 	&msm_adc_device,
 #endif
@@ -9716,14 +9815,14 @@ static struct ion_platform_data ion_pdata = {
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &cp_wb_ion_pdata,
 		},
-		{
+	/*	{
 			.id	= ION_AUDIO_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
 			.name	= ION_AUDIO_HEAP_NAME,
 			.size	= MSM_ION_AUDIO_SIZE,
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *)&co_ion_pdata,
-		},
+		},*/
 #endif
 	}
 };
@@ -9781,7 +9880,7 @@ static void reserve_ion_memory(void)
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_CAMERA_SIZE;
 #endif
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_WB_SIZE;
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
+//	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
 #endif
 }
 
@@ -11407,7 +11506,8 @@ static unsigned int msm_timpani_setup_power(void)
 		gpio_direction_output(GPIO_CDC_RST_N, 0);
 		usleep_range(1000, 1050);
 		gpio_direction_output(GPIO_CDC_RST_N, 1);
-		gpio_free(GPIO_CDC_RST_N);
+//		gpio_free(GPIO_CDC_RST_N);
+		usleep_range(1000, 1050);  //added by Qualcomm patch
 	}
 	return rc;
 
@@ -11420,7 +11520,7 @@ fail:
 static void msm_timpani_shutdown_power(void)
 {
 	int rc;
-
+	gpio_free(GPIO_CDC_RST_N);   // added by qualcomm patch
 	rc = regulator_disable(vreg_timpani_1);
 	if (rc)
 		pr_err("%s: Disable regulator 8058_l0 failed\n", __func__);
@@ -11433,7 +11533,57 @@ static void msm_timpani_shutdown_power(void)
 
 	regulator_put(vreg_timpani_2);
 }
+/* Qualcomm i2c patch begins */
 
+
+
+static unsigned int msm_timpani_reset(void)
+{
+	int rc;
+
+	rc = regulator_is_enabled(vreg_timpani_1);
+	if (rc <= 0) {
+		rc = regulator_set_voltage(vreg_timpani_1, 1200000, 1200000);
+		if (rc) {
+			pr_err("%s: unable to set L0 voltage to 1.2V\n",
+								__func__);
+			return rc;
+		}
+		rc = regulator_enable(vreg_timpani_1);
+		if (rc) {
+			pr_err("%s: Enable regulator 8058_l0 failed\n",
+								__func__);
+			return rc;
+		}
+	}
+
+	rc = regulator_is_enabled(vreg_timpani_2);
+	if (rc <= 0) {
+		rc = regulator_set_voltage(vreg_timpani_2, 1800000, 1800000);
+		if (rc) {
+			pr_err("%s: unable to set s3 voltage to 1.8V\n",
+								__func__);
+			goto fail;
+		}
+		rc = regulator_enable(vreg_timpani_2);
+		if (rc) {
+			pr_err("%s: Enable regulator 8058_s3 failed\n",
+								__func__);
+			goto fail;
+		}
+	}
+
+	gpio_direction_output(GPIO_CDC_RST_N, 0);
+	usleep_range(1000, 1050);
+	gpio_direction_output(GPIO_CDC_RST_N, 1);
+	usleep_range(1000, 1050);
+
+	return 0;
+fail:
+	return rc;
+}
+
+/* qualcomm patch end */
 /* Power analog function of codec */
 static struct regulator *vreg_timpani_cdc_apwr;
 static int msm_timpani_codec_power(int vreg_on)
@@ -11491,6 +11641,16 @@ void __ref init_a2220(void)
 	if(is_lpm_boot)
 		return 0;
 #endif
+#if defined(CONFIG_USA_MODEL_SGH_I577)
+        if (get_hw_rev() <= 0x0D) { /* HW Rev 0.0 */
+                a2220_data.bypass = A2220_BYPASS_ALL;
+                a2220_data.use_cases[A2220_PATH_INCALL_RECEIVER_NSON] = 0;
+                a2220_data.use_cases[A2220_PATH_INCALL_RECEIVER_NSOFF] = 0;
+                a2220_data.use_cases[A2220_PATH_INCALL_SPEAKER] = 0;
+                a2220_data.use_cases[A2220_PATH_BYPASS_MULTIMEDIA] = 0;
+        }
+#endif
+
 #ifdef CONFIG_USE_A2220_B
 	a2220_ctrl(A2220_BOOTUP_INIT , 0);
 #else
@@ -11514,6 +11674,7 @@ static struct marimba_platform_data timpani_pdata = {
 	.slave_id[MARIMBA_SLAVE_ID_QMEMBIST] = TIMPANI_SLAVE_ID_QMEMBIST_ADDR,
 	.marimba_setup = msm_timpani_setup_power,
 	.marimba_shutdown = msm_timpani_shutdown_power,
+	.timpani_reset_config = msm_timpani_reset,	
 	.codec = &timpani_codec_pdata,
 	.tsadc_ssbi_adap = MARIMBA_SSBI_ADAP,
 };
@@ -11616,7 +11777,8 @@ static struct msm_ssbi_platform_data msm8x60_ssbi_pm8901_pdata __devinitdata = {
 };
 #endif /* CONFIG_PMIC8901 */
 
-#if defined(CONFIG_MARIMBA_CORE)
+#if defined(CONFIG_MARIMBA_CORE) 
+
 static struct regulator *vreg_bahama;
 static int msm_bahama_sys_rst = GPIO_MS_SYS_RESET_N;
 
@@ -12571,11 +12733,17 @@ static struct msm_sdcc_pad_drv_cfg sdc3_pad_on_drv_cfg[] = {
 	{TLMM_HDRV_SDC3_CMD, GPIO_CFG_8MA},
 	{TLMM_HDRV_SDC3_DATA, GPIO_CFG_8MA}
 };
-
+#if defined (CONFIG_USA_MODEL_SGH_I727)
+static struct msm_sdcc_pad_pull_cfg sdc3_pad_on_pull_cfg[] = {
+	{TLMM_PULL_SDC3_CMD, GPIO_CFG_NO_PULL},
+	{TLMM_PULL_SDC3_DATA, GPIO_CFG_PULL_UP}
+};
+#else
 static struct msm_sdcc_pad_pull_cfg sdc3_pad_on_pull_cfg[] = {
 	{TLMM_PULL_SDC3_CMD, GPIO_CFG_PULL_UP},
 	{TLMM_PULL_SDC3_DATA, GPIO_CFG_PULL_UP}
 };
+#endif
 
 static struct msm_sdcc_pad_drv_cfg sdc3_pad_off_drv_cfg[] = {
 	{TLMM_HDRV_SDC3_CLK, GPIO_CFG_2MA},
@@ -14540,7 +14708,7 @@ static void tsp_power_on(void)
 }
 
 static struct regulator *vsensor_2p85 = NULL;
-#if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_EUR_MODEL_GT_I9210)
+#if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_EUR_MODEL_GT_I9210) || defined(CONFIG_USA_MODEL_SGH_I577)
 static struct regulator *vsensor_2p85_magnetic = NULL;
 #endif
 #if defined(CONFIG_USA_MODEL_SGH_I757) || defined (CONFIG_CAN_MODEL_SGH_I757M)
@@ -14651,7 +14819,7 @@ static void sensor_power_on_vdd(int vdd_2p85_on, int vdd_1p8_on, int vdd_2p4_on,
 	}
 #endif
 
-#if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_EUR_MODEL_GT_I9210)
+#if defined(CONFIG_KOR_MODEL_SHV_E110S) || defined(CONFIG_EUR_MODEL_GT_I9210) ||  defined(CONFIG_USA_MODEL_SGH_I577)
 	if(vsensor_2p85_magnetic == NULL) {
 		vsensor_2p85_magnetic = regulator_get(NULL, "8058_l8");
 		if (IS_ERR(vsensor_2p85_magnetic))
@@ -16247,6 +16415,8 @@ static void __init msm_fb_add_devices(void)
 #endif
 }
 
+
+
 #if  defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_TARGET_LOCALE_USA)
 /* YDA165 AVDD regulator */
 static struct regulator *amp_reg = NULL;
@@ -16607,9 +16777,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	msm8x60_init_gpiomux(board_data->gpiomux_cfgs);
 	msm8x60_init_uart12dm();
 	msm8x60_init_mmc();
-	//mkr: bt_power_init();
-
-	
+		
 #ifdef CONFIG_USB_SWITCH_FSA9480
 		LTE_switch_init();
 		fsa9480_gpio_init();
@@ -16985,3 +17153,4 @@ MACHINE_START(MSM8X60_DRAGON, "QCT MSM8X60 DRAGON")
 	.timer = &msm_timer,
 	.init_early = msm8x60_charm_init_early,
 MACHINE_END
+

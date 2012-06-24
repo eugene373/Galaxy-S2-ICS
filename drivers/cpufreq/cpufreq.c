@@ -398,30 +398,7 @@ static ssize_t store_##file_name					\
 }
 
 store_one(scaling_min_freq, min);
-#ifdef CONFIG_SEC_DVFS
-static ssize_t store_scaling_max_freq
-	(struct cpufreq_policy *policy, const char *buf, size_t count)
-{									
-	unsigned int ret = -EINVAL;
-	unsigned int value = 0;
-	
-	ret = sscanf(buf, "%u", &value);
-	if (ret != 1)							
-		return -EINVAL;
-									
-	if (policy->cpu == BOOT_CPU) 
-	{
-		if (value >= MAX_FREQ_LIMIT)
-			set_freq_limit(DVFS_THERMALD_ID, -1);
-		else if (value >= MIN_FREQ_LIMIT)
-			set_freq_limit(DVFS_THERMALD_ID, value);
-	}
-
-	return count;
-}
-#else
 store_one(scaling_max_freq, max);
-#endif
 
 /**
  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
@@ -596,6 +573,68 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+
+extern ssize_t acpuclk_get_vdd_levels_str(char *buf);
+extern void acpuclk_set_vdd(unsigned acpu_khz, int vdd);
+
+static ssize_t show_vdd_levels(struct kobject *a, struct attribute *b, char *buf) {
+	return acpuclk_get_vdd_levels_str(buf);
+}
+
+static ssize_t store_vdd_levels(struct kobject *a, struct attribute *b, const char *buf, size_t count) {
+
+	int i = 0, j;
+	int pair[2] = { 0, 0 };
+	int sign = 0;
+
+	if (count < 1)
+		return 0;
+
+	if (buf[0] == '-') {
+		sign = -1;
+		i++;
+	}
+	else if (buf[0] == '+') {
+		sign = 1;
+		i++;
+	}
+
+	for (j = 0; i < count; i++) {
+	
+		char c = buf[i];
+		
+		if ((c >= '0') && (c <= '9')) {
+			pair[j] *= 10;
+			pair[j] += (c - '0');
+		}
+		else if ((c == ' ') || (c == '\t')) {
+			if (pair[j] != 0) {
+				j++;
+
+				if ((sign != 0) || (j > 1))
+					break;
+			}
+		}
+		else
+			break;
+	}
+
+	if (sign != 0) {
+		if (pair[0] > 0)
+			acpuclk_set_vdd(0, sign * pair[0]);
+	}
+	else {
+		if ((pair[0] > 0) && (pair[1] > 0))
+			acpuclk_set_vdd((unsigned)pair[0], pair[1]);
+		else
+			return -EINVAL;
+	}
+	return count;
+}
+
+#endif	/* CONFIG_CPU_VOLTAGE_TABLE */
+
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
 cpufreq_freq_attr_ro(cpuinfo_max_freq);
@@ -611,6 +650,10 @@ cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+define_one_global_rw(vdd_levels);
+#endif
+
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
 	&cpuinfo_max_freq.attr,
@@ -625,6 +668,18 @@ static struct attribute *default_attrs[] = {
 	&scaling_setspeed.attr,
 	NULL
 };
+
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+static struct attribute *vddtbl_attrs[] = {
+	&vdd_levels.attr,
+	NULL
+};
+
+static struct attribute_group vddtbl_attr_group = {
+	.attrs = vddtbl_attrs,
+	.name = "vdd_table",
+};
+#endif	/* CONFIG_CPU_VOLTAGE_TABLE */
 
 struct kobject *cpufreq_global_kobject;
 EXPORT_SYMBOL(cpufreq_global_kobject);
@@ -1822,8 +1877,6 @@ static int __cpuinit cpufreq_cpu_callback(struct notifier_block *nfb,
 					else if (max && cur > max)
 						cpufreq_driver_target(&policy, max, CPUFREQ_RELATION_L);
 				}
-#else
-				set_freq_limit(DVFS_UNICPU_ID, -1);
 #endif
 			}
 #endif
@@ -1834,10 +1887,7 @@ static int __cpuinit cpufreq_cpu_callback(struct notifier_block *nfb,
 				BUG();
 
 			__cpufreq_remove_dev(sys_dev);
-#ifdef CONFIG_SEC_DVFS_UNI
-			if (cpu == NON_BOOT_CPU)
-				set_freq_limit(DVFS_UNICPU_ID, 0);
-#endif			
+		
 			break;
 		case CPU_DOWN_FAILED:
 		case CPU_DOWN_FAILED_FROZEN:
@@ -1959,6 +2009,9 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+	int rc;
+#endif	/* CONFIG_CPU_VOLTAGE_TABLE */
 
 	for_each_possible_cpu(cpu) {
 		per_cpu(cpufreq_policy_cpu, cpu) = -1;
@@ -1969,6 +2022,10 @@ static int __init cpufreq_core_init(void)
 						&cpu_sysdev_class.kset.kobj);
 	BUG_ON(!cpufreq_global_kobject);
 	register_syscore_ops(&cpufreq_syscore_ops);
+
+#ifdef CONFIG_CPU_VOLTAGE_TABLE
+	rc = sysfs_create_group(cpufreq_global_kobject, &vddtbl_attr_group);
+#endif	/* CONFIG_CPU_VOLTAGE_TABLE */
 
 	return 0;
 }

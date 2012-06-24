@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Header file describing the internal (inter-module) DHD interfaces.
  *
  * Provides type definitions and function prototypes used to link the
@@ -40,9 +40,29 @@
 #define HW_OOB
 #endif
 
-#ifdef CONFIG_MACH_U1 /* Q1 also uses this feature */
-#define USE_CID_CHECK
+#ifdef CONFIG_MACH_U1
 #define WRITE_MACADDR
+#endif
+
+#if defined(CONFIG_TARGET_SERIES_P5LTE)\
+	&& defined(CONFIG_USA_OPERATOR_ATT)
+#define OOB_INTR_ONLY
+#define RDWR_MACADDR
+#endif
+
+#if defined(CONFIG_TARGET_SERIES_CELOX)\
+	&& defined(CONFIG_TARGET_LOCALE_USA)
+#define WRITE_MACADDR
+#endif
+
+#if defined(CONFIG_TARGET_SERIES_Q1)\
+	&& defined(CONFIG_TARGET_LOCALE_USA)
+#define WRITE_MACADDR
+#endif
+
+#ifdef CONFIG_TARGET_SERIES_Q1
+#define WRITE_MACADDR
+#define HW_OOB
 #endif
 
 /* REGION CODE */

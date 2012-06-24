@@ -274,6 +274,7 @@ static struct setting_table S6E63M0_GAMMA_22_240[] = {
 static struct setting_table S6E63M0_GAMMA_22_250[] = {
 {0xFA, 22, {0x02, 0x18, 0x08, 0x24, 0x74, 0x6D, 0x54, 0xBF, 0xC3, 0xB2, 0xB4, 0xBA, 0xA7, 0xC6, 0xCA, 0xBA, 0x00, 0xAD, 0x00, 0xAB, 0x00, 0xED}, 0},
   };
+#if !defined(MAPPING_TBL_AUTO_BRIGHTNESS)
 static struct setting_table S6E63M0_GAMMA_22_260[] = {
 {0xFA, 22, {0x02, 0x18, 0x08, 0x24, 0x74, 0x6E, 0x54, 0xBD, 0xC2, 0xB0, 0xB5, 0xBA, 0xA7, 0xC5, 0xC9, 0xBA, 0x00, 0xB0, 0x00, 0xAE, 0x00, 0xF1}, 0},
   };
@@ -286,10 +287,39 @@ static struct setting_table S6E63M0_GAMMA_22_280[] = {
 static struct setting_table S6E63M0_GAMMA_22_290[] = {
 {0xFA, 22, {0x02, 0x18, 0x08, 0x24, 0x71, 0x70, 0x50, 0xBD, 0xC1, 0xB0, 0xB2, 0xB8, 0xA4, 0xC6, 0xC7, 0xBB, 0x00, 0xB6, 0x00, 0xB6, 0x00, 0xFA}, 0},
  };
+#endif
 static struct setting_table S6E63M0_GAMMA_22_300[] = {
 {0xFA, 22, {0x02, 0x18, 0x08, 0x24, 0x70, 0x6E, 0x4E, 0xBC, 0xC0, 0xAF, 0xB3, 0xB8, 0xA5, 0xC5, 0xC7, 0xBB, 0x00, 0xB9, 0x00, 0xB8, 0x00, 0xFC}, 0},
 };
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+static struct setting_table *lcd_s6e63m0_table_22gamma[] =  {
+	S6E63M0_GAMMA_22_30_dimming,
+	S6E63M0_GAMMA_22_40,
+	S6E63M0_GAMMA_22_50,
+	S6E63M0_GAMMA_22_60,
+	S6E63M0_GAMMA_22_70,
+	S6E63M0_GAMMA_22_80,
+	S6E63M0_GAMMA_22_90,
+	S6E63M0_GAMMA_22_100,	
+	S6E63M0_GAMMA_22_110,
+	S6E63M0_GAMMA_22_120,
+	S6E63M0_GAMMA_22_130,
+	S6E63M0_GAMMA_22_140,
+	S6E63M0_GAMMA_22_150,
+	S6E63M0_GAMMA_22_160,
+	S6E63M0_GAMMA_22_170,
+	S6E63M0_GAMMA_22_180,
+	S6E63M0_GAMMA_22_190,
+	S6E63M0_GAMMA_22_200,
+	S6E63M0_GAMMA_22_210,	
+	S6E63M0_GAMMA_22_220,
+	S6E63M0_GAMMA_22_230,
+	S6E63M0_GAMMA_22_240,
+	S6E63M0_GAMMA_22_250,
+	S6E63M0_GAMMA_22_300,
+};
+#else
 static struct setting_table *lcd_s6e63m0_table_22gamma[] =  {
 	S6E63M0_GAMMA_22_30_dimming,
 	S6E63M0_GAMMA_22_40,
@@ -318,6 +348,7 @@ static struct setting_table *lcd_s6e63m0_table_22gamma[] =  {
 	S6E63M0_GAMMA_22_250,
 	S6E63M0_GAMMA_22_300,
 };
+#endif
 
 
 /* ELVSS */

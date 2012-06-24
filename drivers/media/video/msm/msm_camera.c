@@ -35,6 +35,11 @@
 #include <linux/syscalls.h>
 #include <linux/hrtimer.h>
 #include <linux/ion.h>
+
+#if defined(CONFIG_TARGET_SERIES_P5LTE)
+#include "sec_cam_pmic.h"
+#endif
+
 DEFINE_MUTEX(ctrl_cmd_lock);
 
 #define CAMERA_STOP_VIDEO 58
@@ -635,13 +640,11 @@ static int __msm_pmem_table_del(struct msm_sync *sync,
 					pinfo->vaddr == region->info.vaddr &&
 					pinfo->fd == region->info.fd) {
 				hlist_del(node);
-				spin_unlock_irqrestore(&sync->pmem_frame_spinlock, flags);
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 				ion_free(client_for_ion, region->handle);
 #else
 				put_pmem_file(region->file);
 #endif
-				spin_lock_irqsave(&sync->pmem_frame_spinlock, flags);
 				kfree(region);
 				CDBG("%s: type %d, vaddr  0x%p\n",
 					__func__, pinfo->type, pinfo->vaddr);
@@ -661,13 +664,11 @@ static int __msm_pmem_table_del(struct msm_sync *sync,
 				pinfo->vaddr == region->info.vaddr &&
 				pinfo->fd == region->info.fd) {
 				hlist_del(node);
-				spin_unlock_irqrestore(&sync->pmem_frame_spinlock, flags);
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 				ion_free(client_for_ion, region->handle);
 #else
 				put_pmem_file(region->file);
 #endif
-				spin_lock_irqsave(&sync->pmem_frame_spinlock, flags);
 				kfree(region);
 				CDBG("%s: type %d, vaddr  0x%p\n",
 					__func__, pinfo->type, pinfo->vaddr);
@@ -686,13 +687,11 @@ static int __msm_pmem_table_del(struct msm_sync *sync,
 					pinfo->vaddr == region->info.vaddr &&
 					pinfo->fd == region->info.fd) {
 				hlist_del(node);
-				spin_unlock_irqrestore(&sync->pmem_stats_spinlock, flags);
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 				ion_free(client_for_ion, region->handle);
 #else
 				put_pmem_file(region->file);
 #endif
-				spin_lock_irqsave(&sync->pmem_stats_spinlock, flags);
 				kfree(region);
 				CDBG("%s: type %d, vaddr  0x%p\n",
 					__func__, pinfo->type, pinfo->vaddr);
@@ -3040,6 +3039,9 @@ static int __msm_release(struct msm_sync *sync)
 			sync->sctrl.s_release();
 			CDBG("%s, msm_camio_sensor_clk_off\n", __func__);
 			msm_camio_sensor_clk_off(sync->pdev);
+#if defined(CONFIG_TARGET_SERIES_P5LTE)
+			cam_ldo_power_off();
+#endif
 			if (sync->sfctrl.strobe_flash_release) {
 				CDBG("%s, strobe_flash_release\n", __func__);
 				sync->sfctrl.strobe_flash_release(
@@ -3739,6 +3741,12 @@ static int __msm_open(struct msm_cam_device *pmsm, const char *const apps_id,
 		if (sync->vfefn.vfe_init) {
 			sync->pp_frame_avail = 0;
 			sync->get_pic_abort = 0;
+
+#if defined(CONFIG_TARGET_SERIES_P5LTE)
+			// have to enable CAM LDOs before MCLK
+			cam_ldo_power_on(sync->sdata->sensor_name);
+#endif
+
 			rc = msm_camio_sensor_clk_on(sync->pdev);
 			if (rc < 0) {
 				pr_err("%s: setting sensor clocks failed: %d\n",

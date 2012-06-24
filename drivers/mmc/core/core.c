@@ -1412,7 +1412,6 @@ static unsigned int mmc_erase_timeout(struct mmc_card *card,
 		return mmc_mmc_erase_timeout(card, arg, qty);
 }
 
-#if 0 //MMC_CAP_ERASE Guard
 static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 			unsigned int to, unsigned int arg)
 {
@@ -1513,7 +1512,6 @@ static int mmc_do_erase(struct mmc_card *card, unsigned int from,
 out:
 	return err;
 }
-#endif /* MMC_CAP_ERASE Guard */
 
 /**
  * mmc_erase - erase sectors.
@@ -1527,17 +1525,18 @@ out:
 int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 	      unsigned int arg)
 {
-  printk("[MMC_ERASE_GUARD] %s: mmc_erase() disabled for protection. from = %u, nr = %u, arg = %u\n",
-    __func__,from,nr,arg);
-  return -EOPNOTSUPP;
-}
+	unsigned int rem, to = from + nr;
 
+	printk("%s: mmc_erase() disabled for protection. from = %u, nr = %u, arg = %u\n",
+			__func__,from,nr,arg);
+	return -EOPNOTSUPP;
+}
 EXPORT_SYMBOL(mmc_erase);
 
 int mmc_can_erase(struct mmc_card *card)
 {
-  printk("[MMC_ERASE_GUARD] %s: called\n",__func__);
-  if ((card->host->caps & MMC_CAP_ERASE) &&
+	printk("%s: called\n",__func__);
+	if ((card->host->caps & MMC_CAP_ERASE) &&
 	    (card->csd.cmdclass & CCC_ERASE) && card->erase_size)
 		return 1;
 	return 0;

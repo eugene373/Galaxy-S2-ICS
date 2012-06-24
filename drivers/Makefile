@@ -124,5 +124,5 @@ obj-y				+= platform/
 obj-y				+= ieee802154/
 #common clk code
 obj-y				+= clk/
-
+obj-y				+= sensors/
 obj-$(CONFIG_HWSPINLOCK)	+= hwspinlock/

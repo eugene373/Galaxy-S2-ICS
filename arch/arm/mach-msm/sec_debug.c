@@ -541,7 +541,6 @@ static void sec_debug_set_upload_magic(unsigned magic)
 static int sec_debug_normal_reboot_handler(struct notifier_block *nb,
 					    unsigned long l, void *p)
 {
-	enable = 0; /* can't go to 'Ramdump Mode' */
 	sec_debug_set_upload_magic(0x0);
 
 	return 0;

@@ -328,7 +328,7 @@ static int msm_fb_probe(struct platform_device *pdev)
 		fbram_size =
 			pdev->resource[0].end - pdev->resource[0].start + 1;
 		fbram_phys = (char *)pdev->resource[0].start;
-#ifdef CONFIG_SAMSUNG_MEMORY_LAYOUT_ARRANGE
+#if 0 //def CONFIG_SAMSUNG_MEMORY_LAYOUT_ARRANGE
 		fbram = ioremap((unsigned long)fbram_phys, fbram_size);
 #else
 		fbram = __va(fbram_phys);

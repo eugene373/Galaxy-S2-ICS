@@ -66,6 +66,7 @@
 #include "lcdc_ea8868_seq.h"
 #include "mdp4_video_enhance.h"
 
+#define MAPPING_TBL_AUTO_BRIGHTNESS 1
 //#if defined (CONFIG_JPN_MODEL_SC_03D)
 #define SMART_DIMMING 1
 //#endif
@@ -135,6 +136,10 @@ struct ld9040 {
 	boolean	isSmartDimming_loaded;
 	struct str_smart_dim smart;
 #endif
+
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	unsigned int			auto_brightness;
+#endif
 };
 
 static struct ld9040 lcd;
@@ -151,7 +156,14 @@ int IElvssOffset = 0;
 extern unsigned int get_hw_rev(void);
 #endif
 
-
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+#define CANDELA_TABLE_SIZE 24
+static const unsigned int candela_table[CANDELA_TABLE_SIZE] = {
+	 30,  40,  50,  60,  70,  80,  90, 100, 110, 120,
+	130, 140, 150, 160, 170, 180, 190, 200, 210, 220,
+	230, 240, 250, 300
+};
+#endif
 
 
 static struct setting_table gamma_update[] = {
@@ -799,6 +811,10 @@ static void spi_init(void)
 static void lcd_gamma_smartDimming_apply(int srcGamma)
 {
 	u32 original_bl=0;
+
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	original_bl = candela_table[srcGamma];
+#else
 	switch(srcGamma)
 		{
 		case 0: original_bl = 30; break;
@@ -807,6 +823,8 @@ static void lcd_gamma_smartDimming_apply(int srcGamma)
 		case 3 ... 24: original_bl = srcGamma * 10 + 60 /* 90 ~ 300 */; break;
 		default: original_bl= 300; break;
 		}
+#endif
+		
 	DPRINT("lcd_gamma_smartDimming_apply %d -> %d\n", srcGamma, original_bl);
  	calc_gamma_table(&(lcd.smart), original_bl, EA8868_SM2_GAMMA_SmartDimming[0].parameter);
 	setting_table_write(EA8868_SM2_GAMMA_SmartDimming);
@@ -1151,13 +1169,6 @@ void ld9040_disp_on(void)
 			{
 			init_table_info(&(lcd.smart),GAMMA_SmartDimming_VALUE_SET_300cd );
 			ld9040_read_mtp(lcd_mtp_data);
-			printk("MTP_READ");
-			int i;
-			for(i=0;i<LDI_Gamma_CMD_LENGTH;i++)
-			{
-				printk("0x%x ",lcd_mtp_data[i]);
-			}
-			printk("\n");
 			calc_voltage_table(&(lcd.smart), lcd_mtp_data);
 			lcd.isSmartDimming_loaded = TRUE;
 			}
@@ -1170,13 +1181,13 @@ void ld9040_disp_on(void)
 			lcdc_ld9040_set_brightness(18);
 			jump_from_boot=1;
 		}else{
-				if(lcd.current_brightness < 0)
-				  lcdc_ld9040_set_brightness(DFT_BACKLIGHT_VALUE);
-			  else
-				  lcdc_ld9040_set_brightness(lcd.current_brightness);
+				if(lcd.current_brightness <= 0)
+				lcdc_ld9040_set_brightness(DFT_BACKLIGHT_VALUE);
+			else
+				lcdc_ld9040_set_brightness(lcd.current_brightness);
 		}
 		#else
-			if(lcd.current_brightness < 0)
+			if(lcd.current_brightness <= 0)
 				lcdc_ld9040_set_brightness(DFT_BACKLIGHT_VALUE);
 			else
 			 	lcdc_ld9040_set_brightness(lcd.current_brightness);
@@ -1374,7 +1385,7 @@ static void ld9040_gamma_ctl(struct ld9040 *lcd)
 
 		lcd->current_brightness = lcd->bl;
 		setting_table_write(&ea8868_gamma_update_disable[0]);
-DPRINT("ea8868_gamma_ctl %d %d\n", tune_level, lcd->current_brightness );
+	DPRINT("ea8868_gamma_ctl %d %d\n", tune_level, lcd->current_brightness );
 		return;
 	}
 	
@@ -1415,7 +1426,7 @@ DPRINT("ea8868_gamma_ctl %d %d\n", tune_level, lcd->current_brightness );
 //               ld9040_state.display_on = TRUE;
 	    }
 	lcd->current_brightness = lcd->bl;
-DPRINT("%s %d %d\n", __func__,tune_level, lcd->current_brightness );
+	DPRINT("%s %d %d\n", __func__,tune_level, lcd->current_brightness );
 
 	//gamma_update
 	setting_table_write(&gamma_update[0]);
@@ -1464,13 +1475,36 @@ static int get_gamma_value_from_bl(int bl)
 	int gamma_value =0;
 	int gamma_val_x10 =0;
 
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	if (unlikely(!lcd.auto_brightness && bl > 250))	bl = 250;
+  
+        	switch (bl) {
+		case 0 ... 29:
+		gamma_value = 0; // 30cd
+		break;
+
+		case 30 ... 254:
+		gamma_value = (bl - candela_table[0]) / 10;
+		break;
+
+		case 255:
+		gamma_value = CANDELA_TABLE_SIZE - 1;
+		break;
+					
+	        	default:
+	              DPRINT("%s >>> bl_value:%d , do not gamma_update. \n ",__func__,bl);
+	              break;
+        	}
+      
+	DPRINT("%s >>> bl_value:%d, gamma_value: %d. \n ",__func__,bl,gamma_value);	
+#else
 	if(bl >= MIN_BL){
 		gamma_val_x10 = 10 *(MAX_GAMMA_VALUE-1)*bl/(MAX_BL-MIN_BL) + (10 - 10*(MAX_GAMMA_VALUE-1)*(MIN_BL)/(MAX_BL-MIN_BL));
 		gamma_value=(gamma_val_x10 +5)/10;
 	}else{
 		gamma_value =0;
 	}
-	
+#endif	
 	return gamma_value;
 }
 static void lcdc_ld9040_set_backlight(struct msm_fb_data_type *mfd)
@@ -1732,6 +1766,34 @@ static void ld9040_set_acl(struct ld9040 *lcd)
 				setting_table_write(&SEQ_ACL_ON[0]);
 				}
 		}
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+		switch (candela_table[lcd->bl]) {
+		case 30 ... 40: /* 30cd ~ 40cd */
+			if (lcd->cur_acl != 0) {
+				setting_table_write(ACL_cutoff_set[0]);
+				DPRINT("ACL_cutoff_set Percentage : off!!\n");
+				lcd->cur_acl = 0;
+			}
+			break;
+		case 41 ... 250: /* 70cd ~ 250cd */
+			if (lcd->cur_acl != 40) {
+				setting_table_write(ACL_cutoff_set[1]);
+				setting_table_write(&SEQ_ACL_ON[0]);
+				DPRINT("ACL_cutoff_set Percentage : 40!!\n");
+				lcd->cur_acl = 40;
+			}
+			break;
+		default:
+			if (lcd->cur_acl != 50) {
+				setting_table_write(ACL_cutoff_set[6]);
+				setting_table_write(&SEQ_ACL_ON[0]);
+				DPRINT("ACL_cutoff_set Percentage : 50!!\n");
+				lcd->cur_acl = 50;
+			}
+			break;
+		}
+	
+#else // for new spec AMOLED brightness 111201
 		switch (lcd->bl) {
 		case 0 ... 1: /* 30cd ~ 40cd */
 			if (lcd->cur_acl != 0) {
@@ -1740,7 +1802,6 @@ static void ld9040_set_acl(struct ld9040 *lcd)
 				lcd->cur_acl = 0;
 			}
 			break;
-#if 1 // for new spec AMOLED brightness 111201
 		case 2 ... 20: /* 70cd ~ 250cd */
 			if (lcd->cur_acl != 40) {
 				setting_table_write(ACL_cutoff_set[1]);
@@ -1757,58 +1818,8 @@ static void ld9040_set_acl(struct ld9040 *lcd)
 				lcd->cur_acl = 50;
 			}
 			break;
-
-#else
-		case 2 ... 12: /* 70cd ~ 180cd */
-			if (lcd->cur_acl != 40) {
-				setting_table_write(ACL_cutoff_set[1]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 40!!\n");
-				lcd->cur_acl = 40;
-			}
-			break;
-		case 13: /* 190cd */
-			if (lcd->cur_acl != 43) {
-				setting_table_write(ACL_cutoff_set[2]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 43!!\n");
-				lcd->cur_acl = 43;
-			}
-			break;
-		case 14: /* 200cd */
-			if (lcd->cur_acl != 45) {
-				setting_table_write(ACL_cutoff_set[3]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 45!!\n");
-				lcd->cur_acl = 45;
-			}
-			break;
-		case 15: /* 210cd */
-			if (lcd->cur_acl != 47) {
-				setting_table_write(ACL_cutoff_set[4]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 47!!\n");
-				lcd->cur_acl = 47;
-			}
-			break;
-		case 16: /* 220cd */
-			if (lcd->cur_acl != 48) {
-				setting_table_write(ACL_cutoff_set[5]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 48!!\n");
-				lcd->cur_acl = 48;
-			}
-			break;
-		default:
-			if (lcd->cur_acl != 50) {
-				setting_table_write(ACL_cutoff_set[6]);
-				setting_table_write(&SEQ_ACL_ON[0]);
-				DPRINT("ACL_cutoff_set Percentage : 50!!\n");
-				lcd->cur_acl = 50;
-			}
-			break;
-#endif			
 		}
+#endif	
 	}
 	else{
 			setting_table_write(ACL_cutoff_set[0]);
@@ -2033,6 +2044,38 @@ static ssize_t ld9040_sysfs_store_lcd_power(struct device *dev,
 static DEVICE_ATTR(lcd_power, 0664,
 		NULL, ld9040_sysfs_store_lcd_power);
 
+
+///////////////////////
+
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+static ssize_t lcd_sysfs_store_auto_brightness(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t len)
+{
+	int value;
+	int rc;
+	
+	dev_info(dev, "lcd_sysfs_store_auto_brightness\n");
+
+	rc = strict_strtoul(buf, (unsigned int)0, (unsigned long *)&value);
+	if (rc < 0)
+		return rc;
+	else {
+		if (lcd.auto_brightness != value) {
+			dev_info(dev, "%s - %d, %d\n", __func__, lcd.auto_brightness, value);
+			mutex_lock(&(lcd.lock));
+			lcd.auto_brightness = value;
+			mutex_unlock(&(lcd.lock));
+		}
+	}
+	return len;
+}
+
+static DEVICE_ATTR(auto_brightness, 0664,
+		NULL, lcd_sysfs_store_auto_brightness);
+
+#endif
+
 ///////////////////////
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -2117,6 +2160,9 @@ static int __devinit ld9040_probe(struct platform_device *pdev)
 	lcd.isSmartDimming = FALSE;
 	lcd.isSmartDimming_loaded = FALSE;	
 #endif
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+	lcd.auto_brightness = 0;
+#endif
 #ifdef LCDC_19GAMMA_ENABLE
     ret = device_create_file(sysfs_panel_dev, &dev_attr_gamma_mode);
 	if (ret < 0)
@@ -2148,6 +2194,22 @@ static int __devinit ld9040_probe(struct platform_device *pdev)
 	// mdnie sysfs create
 	init_mdnie_class();
 ////////////
+
+#ifdef MAPPING_TBL_AUTO_BRIGHTNESS
+    if(1){
+      struct backlight_device *pbd = NULL;
+      pbd = backlight_device_register("panel", NULL, NULL,NULL,NULL);
+      if (IS_ERR(pbd)) {
+        DPRINT("Could not register 'panel' backlight device\n");
+      }
+      else
+      {
+        ret = device_create_file(&pbd->dev, &dev_attr_auto_brightness);
+        if (ret < 0)
+          DPRINT("auto_brightness failed to add sysfs entries\n");
+      }
+    }
+#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	lcd.early_suspend.suspend = ld9040_early_suspend;

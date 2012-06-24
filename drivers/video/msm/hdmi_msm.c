@@ -111,7 +111,7 @@ static int hdmi_msm_hpd_on(bool trigger_handler);
 #error "only one among CONFIG_VIDEO_MHL_V1 and CONFIG_VIDEO_MHL_V2 should be defined"
 #endif
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 static DECLARE_WAIT_QUEUE_HEAD(hdmi_msm_resolution_switchEvent);
 static DECLARE_WAIT_QUEUE_HEAD(hdmi_msm_state_work_completedEvent);
 #endif
@@ -752,7 +752,7 @@ uint32 hdmi_inp(uint32 offset)
 }
 #endif /* DEBUG */
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 static bool mhl_connected = false;
 static bool mhl_disconnected = false;
 
@@ -807,14 +807,14 @@ static void hdmi_msm_hpd_state_work(struct work_struct *work)
 	if (!hdmi_msm_state || !hdmi_msm_state->hpd_initialized ||
 		!MSM_HDMI_BASE) {
 		DEV_DBG("%s: ignored, probe failed\n", __func__);
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 		state_work_completed = true;
 #endif
 		return;
 	}
 
 	DEV_DBG("%s:Got interrupt\n", __func__);
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 	/* HPD_INT_STATUS[0x0250] */
 	hpd_state = (HDMI_INP(0x0250) & 0x2) >> 1;
 	mutex_lock(&external_common_state_hpd_mutex);
@@ -875,7 +875,7 @@ static void hdmi_msm_hpd_state_work(struct work_struct *work)
 			external_common_state->sdev.state,  __func__);
 #endif
 
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		if (hpd_state) {
 #else
 		if (hpd_state && mhl_connected) {
@@ -887,13 +887,13 @@ static void hdmi_msm_hpd_state_work(struct work_struct *work)
 			/* Build EDID table */
 			hdmi_msm_turn_on();
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 			mhl_connected = false;
 #endif
 			DEV_INFO("HDMI HPD: sense CONNECTED: send ONLINE\n");
 			kobject_uevent(external_common_state->uevent_kobj,
 				KOBJ_ONLINE);
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 			wait_event_interruptible_timeout(hdmi_msm_resolution_switchEvent, resolution_switch_signal, msecs_to_jiffies(3*1000)); // Placed here instead of hdcp enable function as this is a first time issue and when the auth_fail_int happens the hdcp_enable function should not wait unnecessarily.
 			resolution_switch_signal = false;// set to false for the next sync detect.
 #endif
@@ -913,8 +913,10 @@ static void hdmi_msm_hpd_state_work(struct work_struct *work)
 #else
 			switch_set_state(&hdmi_msm_state->hdmi_audio_switch, 1);
 #endif
-
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+			wake_lock(&hdmi_msm_state->wake_lock);
+#endif
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		} else {
 #else
 		} else if (mhl_disconnected) {
@@ -930,6 +932,9 @@ static void hdmi_msm_hpd_state_work(struct work_struct *work)
 				external_common_state->sdev.state,  __func__);
 #else
 			switch_set_state(&hdmi_msm_state->hdmi_audio_switch, 0);
+#endif
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+			wake_unlock(&hdmi_msm_state->wake_lock);
 #endif
 		}
 	}
@@ -1029,7 +1034,7 @@ static irqreturn_t hdmi_msm_isr(int irq, void *dev_id)
 	/* HDMI_HPD_INT_CTRL[0x0254] */
 	hpd_int_ctrl = HDMI_INP_ND(0x0254);
 	if ((hpd_int_ctrl & (1 << 2)) && (hpd_int_status & (1 << 0))) {
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		boolean cable_detected = (hpd_int_status & 2) >> 1;
 #endif
 
@@ -1042,7 +1047,7 @@ static irqreturn_t hdmi_msm_isr(int irq, void *dev_id)
 
 		DEV_DBG("%s: HPD IRQ, Ctrl=%04x, State=%04x\n", __func__,
 			hpd_int_ctrl, hpd_int_status);
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		mutex_lock(&hdmi_msm_state_mutex);
 		hdmi_msm_state->hpd_cable_chg_detected = TRUE;
 
@@ -1153,7 +1158,7 @@ static irqreturn_t hdmi_msm_isr(int irq, void *dev_id)
 			& ~((1 << 6) | (1 << 4)));
 		DEV_INFO("HDCP: AUTH_FAIL_INT received, LINK0_STATUS=0x%08x\n",
 			HDMI_INP_ND(0x011C));
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		if (hdmi_msm_state->full_auth_done) {
 #else
 		//DEV_DBG("The full_auth_proc_done in isr = %d\n", full_auth_proc_done); 
@@ -1170,7 +1175,7 @@ static irqreturn_t hdmi_msm_isr(int irq, void *dev_id)
 			DEV_INFO("Hdmi state switch to %d: %s\n",
 				external_common_state->sdev.state,  __func__);
 #endif
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 			hdmi_msm_set_mode(true); // to stop the noisy screen display
 #endif
 			mutex_lock(&hdcp_auth_state_mutex);
@@ -2404,8 +2409,9 @@ static int hdcp_authentication_part1(void)
 
 	static uint8 buf[0xFF];
 	memset(buf, 0, sizeof(buf));
+#ifndef CONFIG_VIDEO_MHL_TABLET_V1
 	INIT_COMPLETION(hdmi_msm_state->hdcp_success_done);
-
+#endif
 	if (!is_part1_done) {
 		is_part1_done = TRUE;
 
@@ -2503,13 +2509,13 @@ static int hdcp_authentication_part1(void)
 			[0] ENABLE */
 		/* encryption_enable | enable  */
 		HDMI_OUTP(0x0110, (1 << 8) | (1 << 0));
-
+#ifndef CONFIG_VIDEO_MHL_TABLET_V1
 		/*
 		 * Check to see if a HDCP DDC Failure is indicated in
 		 * HDCP_DDC_STATUS. If yes, clear it.
 		 */
 		check_and_clear_HDCP_DDC_Failure();
-
+#endif
 		/* 0x0118 HDCP_INT_CTRL
 		 *    [2] AUTH_SUCCESS_MASK	[R/W]	Mask bit for\
 		 *					HDCP Authentication
@@ -2550,13 +2556,13 @@ static int hdcp_authentication_part1(void)
 			(HDMI_INP_ND(0x011C) & BIT(9)) >> 9);
 			goto error;
 		}
-
+#ifndef CONFIG_VIDEO_MHL_TABLET_V1
 		/*
 		 * A small delay is needed here to avoid device crash observed
 		 * during reauthentication in MSM8960
 		 */
 		msleep(20);
-
+#endif
 		/* 0x0168 HDCP_RCVPORT_DATA12
 		   [23:8] BSTATUS
 		   [7:0] BCAPS */
@@ -2653,18 +2659,24 @@ static int hdcp_authentication_part1(void)
 		/* 0x013C HDCP_RCVPORT_DATA2_0
 		[15:0] LINK0_RI */
 		HDMI_OUTP(0x013C, (((uint32)buf[1]) << 8) | buf[0]);
-
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	        INIT_COMPLETION(hdmi_msm_state->hdcp_success_done);
+		timeout_count = wait_for_completion_interruptible_timeout(
+			&hdmi_msm_state->hdcp_success_done, HZ/2);
+#else
 		timeout_count = wait_for_completion_interruptible_timeout(
 			&hdmi_msm_state->hdcp_success_done, HZ*2);
+#endif
 
 		if (!timeout_count) {
 			ret = -ETIMEDOUT;
 			is_match = HDMI_INP(0x011C) & BIT(12);
+			if (!is_match){
 			DEV_ERR("%s(%d): timedout, Link0=<%s>\n", __func__,
 			  __LINE__,
 			  is_match ? "RI_MATCH" : "No RI Match INTR in time");
-			if (!is_match)
 				goto error;
+	  	        }
 		}
 
 		/* 0x011C HDCP_LINK0_STATUS
@@ -2917,7 +2929,7 @@ static int hdcp_authentication_part2(void)
 	for (i = 0; i < ksv_bytes - 1; i++) {
 		/* Write KSV byte and do not set DONE bit[0] */
 		HDMI_OUTP_ND(0x0244, kvs_fifo[i] << 16);
-
+#ifndef CONFIG_VIDEO_MHL_TABLET_V1
 		/* Once 64 bytes have been written, we need to poll for
 		 * HDCP_SHA_BLOCK_DONE before writing any further
 		 */
@@ -2938,7 +2950,7 @@ static int hdcp_authentication_part2(void)
 				goto error;
 			}
 		}
-
+#endif
 	}
 
 	/* Write l to DONE bit[0] */
@@ -3041,7 +3053,7 @@ static void hdmi_msm_hdcp_enable(void)
 	hdmi_msm_state->full_auth_done = FALSE;
 	mutex_unlock(&hdcp_auth_state_mutex);
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	/* jgk.20110714
 	 * AKSV read is coming prior to HDMI CORE clk, which can make stability issues
 	 * so put it later than HDMI CORE clk */
@@ -3119,7 +3131,7 @@ error:
 		mutex_unlock(&hdcp_auth_state_mutex);
 	} else {
 		DEV_WARN("[DEV_DBG]: Calling reauth from [%s]\n", __func__);
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 		if (hdmi_msm_state->panel_power_on)
 #else
 		if (hdmi_msm_state->panel_power_on || external_common_state->hpd_state)
@@ -4097,7 +4109,7 @@ static void hdmi_msm_turn_on(void)
 	DEV_INFO("HDMI Core: Initialized\n");
 }
 
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 static void hdmi_msm_hpd_state_timer(unsigned long data)
 {
 	queue_work(hdmi_work_queue, &hdmi_msm_state->hpd_state_work);
@@ -4146,7 +4158,7 @@ static void hdmi_msm_hpd_read_work(struct work_struct *work)
 
 static void hdmi_msm_hpd_off(void)
 {
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	if (!hdmi_msm_state || !HDMI_BASE) {  //Praveen: probe failed hence no use in disabling/enabling clks as they are released.(  if probe failed, SS has seen kernel panic at this point as clks are released and set to NULL, enable/disable call caused panic).
 		return;
 	}
@@ -4166,7 +4178,7 @@ static void hdmi_msm_hpd_off(void)
 #endif
 
 	hdmi_msm_state->hpd_initialized = FALSE;
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 	hdmi_msm_state->pd->cec_power(0);
 #endif
 	hdmi_msm_state->pd->enable_5v(0);
@@ -4275,13 +4287,15 @@ int hdmi_msm_hpd_switch(bool detect_flag)
 {
 	if(detect_flag)
 	{
-		printk("hdmi_hpd_on !!!!\n");
-		mhl_hpd_handler(true);
+		printk("hdmi_hpd_on !!!!");
+		hdmi_msm_state->dock_state = TRUE;
+		if(!hdmi_msm_state->boot_state)
+			hdmi_msm_hpd_on(true);
 	}
 	else
 	{
-		printk("hdmi_hpd_off !!!!\n");
-		mhl_hpd_handler(false);
+		printk("hdmi_hpd_off !!!!");
+		hdmi_msm_state->dock_state = FALSE;
 	}
 }
 EXPORT_SYMBOL(hdmi_msm_hpd_switch);
@@ -4292,7 +4306,7 @@ static int hdmi_msm_power_on(struct platform_device *pdev)
 	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
 	bool changed;
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	int rc;
 	struct fb_var_screeninfo *var = &mfd->fbi->var;
 #endif
@@ -4302,7 +4316,7 @@ static int hdmi_msm_power_on(struct platform_device *pdev)
 
 
 //Added to fix boot up HDMI issue
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	if(!hdmi_msm_state->hpd_initialized && !mhl_connected){  //hpd from mhl not from the hpd feature.
 		rc = hdmi_msm_hpd_on(false);
 		DEV_INFO("HPD: panel power on without mhl connected, hence should be powered off by caller\n");
@@ -4327,7 +4341,7 @@ static int hdmi_msm_power_on(struct platform_device *pdev)
 
 	changed = hdmi_common_get_video_format_from_drv_data(mfd);
 
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 	// Hpd is not turned on or off baseed on the user option. Mhl triggers the on and dtv_off puts the hdmi in off state..
 	if (!external_common_state->hpd_feature_on) {
 		int rc = hdmi_msm_hpd_on(true);
@@ -4350,7 +4364,7 @@ static int hdmi_msm_power_on(struct platform_device *pdev)
 	} else
 		mutex_unlock(&external_common_state_hpd_mutex);
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	if (var->reserved[3]) {
 			DEV_DBG("praveen: In var reserved sending wakeup\n");
 			resolution_switch_signal = true;
@@ -4363,7 +4377,7 @@ static int hdmi_msm_power_on(struct platform_device *pdev)
 		hdmi_msm_is_power_on() ? "ON" : "OFF" ,
 		hdmi_msm_is_dvi_mode() ? "ON" : "OFF");
 
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	state_work_completed = true;
 	wake_up_interruptible(&hdmi_msm_state_work_completedEvent);
 #endif
@@ -4382,33 +4396,44 @@ static int hdmi_msm_power_off(struct platform_device *pdev)
 	if (!hdmi_msm_state->hdmi_app_clk)
 		return -ENODEV;
 
-
-#if 1//def CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT
 	mutex_lock(&hdmi_msm_state_mutex);
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	if (hdmi_msm_state->hdcp_activating) {
+#else
 	if (mhl_hpd_state /*|| hdmi_msm_state->hdcp_activating*/) {
+#endif
 		hdmi_msm_state->panel_power_on = FALSE;
 		mutex_unlock(&hdmi_msm_state_mutex);
 		DEV_INFO("%s : mhl_hpd_state is still Active, returning\n",__func__);
 		return 0;
 	}
 	mutex_unlock(&hdmi_msm_state_mutex);
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT */
 
 	DEV_INFO("power: OFF (audio off, Reset Core)\n");
 	hdmi_msm_audio_off();
+#ifdef  CONFIG_VIDEO_MHL_TABLET_V1
+	disable_irq(hdmi_msm_state->irq);
+	hdmi_msm_set_mode(FALSE);
+	HDMI_OUTP_ND(0x0308, 0x7F); /*0b01111111*/
+	hdmi_msm_state->hpd_initialized = FALSE;
+	hdmi_msm_state->pd->enable_5v(0);
+	hdmi_msm_state->pd->core_power(0, 1);
+	hdmi_msm_clk(0);
+	hdmi_msm_state->hpd_initialized = FALSE;
+#else
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL_HDCP_SUPPORT
 	hdcp_deauthenticate();
 #endif
 	hdmi_msm_hpd_off();
+#endif /*CONFIG_VIDEO_MHL_TABLET_V1*/
 	hdmi_msm_powerdown_phy();
 	hdmi_msm_dump_regs("HDMI-OFF: ");
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
-	hdmi_msm_hpd_on(true);
-#else
-	//hdmi_msm_hpd_on(false);
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	if(hdmi_msm_state->dock_state)
+    	        hdmi_msm_hpd_on(false);
 #endif
 	
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 	// Hpd is not turned on or off baseed on the user option. Mhl triggers the on and dtv_off puts the hdmi in off state..
 	mutex_lock(&external_common_state_hpd_mutex);
 	if (!external_common_state->hpd_feature_on)
@@ -4417,7 +4442,7 @@ static int hdmi_msm_power_off(struct platform_device *pdev)
 #endif
 
 	hdmi_msm_state->panel_power_on = FALSE;
-#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2) || defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	state_work_completed = true;
 	wake_up_interruptible(&hdmi_msm_state_work_completedEvent);
 #endif
@@ -4533,7 +4558,7 @@ static int __devinit hdmi_msm_probe(struct platform_device *pdev)
 	}
 	disable_irq(hdmi_msm_state->irq);
 
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2)
 	init_timer(&hdmi_msm_state->hpd_state_timer);
 	hdmi_msm_state->hpd_state_timer.function =
 		hdmi_msm_hpd_state_timer;
@@ -4602,6 +4627,11 @@ static int __devinit hdmi_msm_probe(struct platform_device *pdev)
 #else
 	hdmi_msm_state->hdmi_audio_switch.name = "hdmi";
 	switch_dev_register(&hdmi_msm_state->hdmi_audio_switch);
+#endif
+
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	hdmi_msm_state->pd->cec_power(0);
+	wake_lock_init(&hdmi_msm_state->wake_lock, WAKE_LOCK_SUSPEND, "hdmi_msm");
 #endif
 
 	return 0;
@@ -4677,7 +4707,9 @@ static int hdmi_msm_hpd_feature(int on)
 	int rc = 0;
 
 	DEV_INFO("%s: %d\n", __func__, on);
-#if !defined(CONFIG_VIDEO_MHL_V1) && !defined(CONFIG_VIDEO_MHL_V2) && !defined(CONFIG_VIDEO_MHL_TABLET_V1)
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	hdmi_msm_state->boot_state = FALSE;
+
 	if (on) {
 		rc = hdmi_msm_hpd_on(true);
 	} else {
@@ -4687,8 +4719,12 @@ static int hdmi_msm_hpd_feature(int on)
 		switch_set_state(&external_common_state->sdev, 0);
 #endif
 	}
-#endif
 
+	/*Reduce the power consumption in idle*/
+	if(!hdmi_msm_state->dock_state)
+		hdmi_msm_hpd_off();
+#endif
+#if defined(CONFIG_VIDEO_MHL_V1) || defined(CONFIG_VIDEO_MHL_V2)
 	if(hdmi_msm_state->pd->bootup_ck){
 		if(mhl_hpd_state){ /* Added to fix boot up HDMI issue */
 			hdmi_msm_hpd_on(false);
@@ -4697,7 +4733,7 @@ static int hdmi_msm_hpd_feature(int on)
 		}
 		hdmi_msm_state->boot_completion = true;
 	}
-
+#endif
 	return rc;
 }
 
@@ -4798,7 +4834,9 @@ static int __init hdmi_msm_init(void)
 		platform_driver_unregister(&this_driver);
 		goto init_exit;
 	}
-
+#ifdef CONFIG_VIDEO_MHL_TABLET_V1
+	hdmi_msm_state->boot_state = TRUE;
+#endif
 	pr_debug("%s: success:"
 #ifdef DEBUG
 		" DEBUG"

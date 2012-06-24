@@ -85,6 +85,13 @@ DECLARE_COMPLETION(charm_needs_reload);
 DECLARE_COMPLETION(charm_boot);
 DECLARE_COMPLETION(charm_ram_dumps);
 
+#if defined(CONFIG_USA_OPERATOR_ATT) && defined(CONFIG_TARGET_SERIES_P5LTE)
+int get_charm_ready(void)
+{
+	return charm_ready;
+}
+EXPORT_SYMBOL(get_charm_ready);
+#endif
 
 static void charm_disable_irqs(void)
 {

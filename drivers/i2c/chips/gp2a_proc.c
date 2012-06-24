@@ -26,7 +26,7 @@ u32 lightsensor_get_adc(int channel)
 						__func__, channel, ret);
 		goto out;
 	}
-	ret = wait_for_completion_interruptible_timeout(&conv_complete_evt, 10*HZ);
+	ret = wait_for_completion_timeout(&conv_complete_evt, 10*HZ);
 	if (!ret) {
 		pr_err("%s: wait interrupted channel %d ret=%d\n",
 						__func__, channel, ret);

@@ -22,7 +22,7 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957)
+#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957) || defined (CONFIG_KOR_MODEL_SHV_E140S) || defined (CONFIG_KOR_MODEL_SHV_E140K) || defined (CONFIG_KOR_MODEL_SHV_E140L)
 #include <mach/board-msm8660.h>
 #endif
 
@@ -373,7 +373,7 @@ bail_out:
 EXPORT_SYMBOL_GPL(pm8xxx_get_irq_stat);
 
 
-#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957)
+#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957) || defined (CONFIG_KOR_MODEL_SHV_E140S) || defined (CONFIG_KOR_MODEL_SHV_E140K) || defined (CONFIG_KOR_MODEL_SHV_E140L)
 // This function clears hw revision gpio's irq configuration set incorrectly by sbl3 bootloader.
 // Only E120L and E160(S/K/L)'s sbl3 bootloader uses hw revision gpio for irq, even though it is ueseless actually.
 // (In other words, it' a sort of bug.) Originally I should've changed the bootloader, but the bootloader
@@ -383,9 +383,13 @@ static pm8xxx_clear_hw_rev_gpio_irq(const struct pm_irq_chip *chip, int devirq)
 {
         static struct irq_data pm_gpio_hw_rev;
         unsigned int rev_gpios[] = {
+#if defined( CONFIG_KOR_MODEL_SHV_E140L )
+                PM8058_GPIO_IRQ(PM8058_IRQ_BASE,5),        
+#endif           
                 PM8058_GPIO_IRQ(PM8058_IRQ_BASE,33),
                 PM8058_GPIO_IRQ(PM8058_IRQ_BASE,34),
                 PM8058_GPIO_IRQ(PM8058_IRQ_BASE,35),
+                PM8058_GPIO_IRQ(PM8058_IRQ_BASE,37),
         };
 
         
@@ -455,7 +459,7 @@ struct pm_irq_chip *  __devinit pm8xxx_irq_init(struct device *dev,
 	}
 
 
-#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957)
+#if defined (CONFIG_KOR_MODEL_SHV_E120L) || defined(CONFIG_KOR_MODEL_SHV_E160S) || defined(CONFIG_KOR_MODEL_SHV_E160K) || defined(CONFIG_KOR_MODEL_SHV_E160L) || defined (CONFIG_USA_MODEL_SGH_I957) || defined (CONFIG_KOR_MODEL_SHV_E140S) || defined (CONFIG_KOR_MODEL_SHV_E140K) || defined (CONFIG_KOR_MODEL_SHV_E140L)
         // E120L's and E160(S/K/L)'s bootloader bug fix
         pm8xxx_clear_hw_rev_gpio_irq(chip, devirq);
 #endif

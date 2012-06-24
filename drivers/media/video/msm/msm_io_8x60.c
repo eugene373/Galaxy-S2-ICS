@@ -708,7 +708,7 @@ int msm_camio_sensor_clk_on(struct platform_device *pdev)
 	rc = camdev->camera_gpio_on();
 	if (rc < 0)
 		return rc;
-#if !defined (CONFIG_SENSOR_ISX012)
+#if defined (CONFIG_SENSOR_M5MO)
 	// ldo on
 	sinfo->sensor_platform_info->sensor_power_control(1); //on
 
@@ -736,7 +736,6 @@ int msm_camio_sensor_clk_on(struct platform_device *pdev)
 #endif
 }
 
-
 int msm_camio_sensor_clk_off(struct platform_device *pdev)
 {
 	struct msm_camera_sensor_info *sinfo = pdev->dev.platform_data;
@@ -746,7 +745,7 @@ int msm_camio_sensor_clk_off(struct platform_device *pdev)
 
 	pr_info("%s\n", __func__);
 
-#if !defined (CONFIG_SENSOR_ISX012)
+#if defined (CONFIG_SENSOR_M5MO)
 	//reset low
 	if (sinfo->sensor_platform_info->sensor_reset) {
 		gpio_set_value_cansleep(sinfo->sensor_platform_info->sensor_reset, 0);

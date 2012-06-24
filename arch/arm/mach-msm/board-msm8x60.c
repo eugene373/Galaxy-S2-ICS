@@ -1757,6 +1757,14 @@ fail:
 	return;
 }
 
+#ifdef CONFIG_USB_HOST_NOTIFY
+static void msm_hsusb_set_autosw_pba()
+{
+#ifdef CONFIG_USB_SWITCH_FSA9480
+	fsa9480_otg_set_autosw_pba();
+#endif
+}
+#endif
 
 #if defined(CONFIG_USB_GADGET_MSM_72K) || defined(CONFIG_USB_EHCI_MSM_72K)
 static struct msm_otg_platform_data msm_otg_pdata = {
@@ -1789,6 +1797,9 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.chg_vbus_draw = NULL,
 #endif
 	.ldo_set_voltage=msm_hsusb_ldo_set_voltage,
+#ifdef CONFIG_USB_HOST_NOTIFY
+	.set_autosw_pba   = msm_hsusb_set_autosw_pba,
+#endif
 };
 #endif
 
@@ -3051,7 +3062,7 @@ static void gsbi7_qup_i2c_gpio_config(int adap_id, int config_type)
 }
 
 #if defined(CONFIG_USA_MODEL_SGH_I727) || defined(CONFIG_USA_MODEL_SGH_T989) \
- || defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+ || defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 static struct msm_i2c_platform_data msm_gsbi1_qup_i2c_pdata = {
 	.clk_freq = 400000,
 	.src_clk_rate = 24000000,
@@ -5156,12 +5167,6 @@ static struct sec_jack_zone jack_zones[] = {
                 .jack_type      = SEC_HEADSET_3POLE,
         },
         [2] = {
-                .adc_high       = 2700,
-                .delay_ms       = 10,
-                .check_count    = 10,
-                .jack_type      = SEC_HEADSET_4POLE,
-        },
-        [3] = {
                 .adc_high       = 9999,
                 .delay_ms       = 10,
                 .check_count    = 10,
@@ -5480,7 +5485,7 @@ static struct max17040_platform_data max17040_pdata = {
 	.rcomp_value = 0xff1f,
 #elif defined(CONFIG_USA_MODEL_SGH_I727)
 	.rcomp_value = 0xc71f,
-#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	.rcomp_value = 0xd01f,
 #elif defined(CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I577)
 	.rcomp_value = 0xc01f,
@@ -5546,7 +5551,7 @@ int get_mhl_int_irq(void)
         return PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PMIC_GPIO_MHL_INT_9);
     else
      	return PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PMIC_GPIO_MHL_INT_31);
-#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	if(hw_rev == 1)
 		return PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PMIC_GPIO_MHL_INT_9);
     else
@@ -5640,7 +5645,7 @@ int get_mhl_int_irq(void)
     else
      	return PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PMIC_GPIO_MHL_INT_31);
 		
-#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	if(hw_rev == 1)
 			return PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PMIC_GPIO_MHL_INT_9);
     else
@@ -7366,15 +7371,15 @@ unsigned int msm_adc_gpio_expander_disable(int cs_disable)
 #endif
 
 static struct msm_adc_channels msm_adc_channels_data[] = {
-	{"head_set", CHANNEL_ADC_HDSET, 0, &xoadc_fn, CHAN_PATH_TYPE9,
+	{"head_set", CHANNEL_ADC_HDSET, 0, &xoadc_fn, CHAN_PATH_TYPE6,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 	{"light_lux", CHANNEL_ADC_LIGHT_LUX, 0, &xoadc_fn, CHAN_PATH_TYPE7,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 	{"vichg", CHANNEL_ADC_CHG_MONITOR, 0, &xoadc_fn, CHAN_PATH_TYPE10,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_xtern_chgr_cur},
-	{"batt_id", CHANNEL_ADC_BATT_ID, 0, &xoadc_fn, CHAN_PATH_TYPE6,
+	{"batt_id", CHANNEL_ADC_BATT_ID, 0, &xoadc_fn, CHAN_PATH_TYPE9,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
-#if defined (CONFIG_USA_MODEL_SGH_T989) || defined(CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I757) || defined (CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#if defined (CONFIG_USA_MODEL_SGH_T989) || defined(CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I757) || defined (CONFIG_USA_MODEL_SGH_T769) || defined(CONFIG_USA_MODEL_SGH_I577) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	{"batt_therm", CHANNEL_ADC_BATT_THERM, 0, &xoadc_fn, CHAN_PATH_TYPE8,
 		ADC_CONFIG_TYPE2, ADC_CALIB_CONFIG_TYPE2, scale_default},
 #elif defined (CONFIG_JPN_MODEL_SC_03D)
@@ -7421,13 +7426,13 @@ static void pmic8058_xoadc_mpp_config(void)
 {
 	int rc, i;
 	struct pm8xxx_mpp_init_info xoadc_mpps[] = {
-		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH8,
+		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5,
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_5, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH9,
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_4, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH6,
 							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5,
+		PM8058_MPP_INIT(XOADC_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH8,
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_10, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH7,
 							AOUT_CTRL_DISABLE),
@@ -9653,7 +9658,7 @@ static struct pmic8058_othc_config_pdata othc_config_pdata_0 = {
 };
 
 #if defined(CONFIG_SAMSUNG_JACK) && (defined(CONFIG_TARGET_LOCALE_KOR) || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_JPN_MODEL_SC_03D)) \
- || defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+ || defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 /* MIC_BIAS1 is configured as normal MIC BIAS */
 static struct pmic8058_othc_config_pdata othc_config_pdata_1 = {
 	.micbias_select = OTHC_MICBIAS_1,
@@ -13311,7 +13316,7 @@ static void sensor_power_on(void)
 	else
 		sensor_power_on_vdd(1, 1, 0, 0);
 #endif
-#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
     sensor_power_on_vdd(1, 0, 0, 0);
 #elif defined(CONFIG_JPN_MODEL_SC_03D)
 	if(get_hw_rev() >= 0x06)
@@ -13355,7 +13360,7 @@ static void sensor_power_off(void)
 	else
 		sensor_power_off_vdd(1, 1, 0, 0);
 #endif
-#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
     sensor_power_off_vdd(1, 1, 0, 0);
 #elif defined(CONFIG_JPN_MODEL_SC_03D)
 	if(get_hw_rev() >= 0x06)
@@ -13512,7 +13517,7 @@ static void sensor_power_on(void)
 	else
 		sensor_power_on_vdd(1, 1, 0, 0);
 #endif
-#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
     sensor_power_on_vdd(1, 0, 0, 0);
 #elif defined(CONFIG_JPN_MODEL_SC_03D)
 	if(get_hw_rev() >= 0x06)
@@ -13556,7 +13561,7 @@ static void sensor_power_off(void)
 	else
 		sensor_power_off_vdd(1, 1, 0, 0);
 #endif
-#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined(CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
     sensor_power_off_vdd(1, 1, 0, 0);
 #elif defined(CONFIG_JPN_MODEL_SC_03D)
 	if(get_hw_rev() >= 0x06)
@@ -15115,7 +15120,7 @@ static void __init bt_power_init(void)
 #if defined (CONFIG_USA_MODEL_SGH_T989) || defined (CONFIG_USA_MODEL_SGH_I727) || defined (CONFIG_JPN_MODEL_SC_03D) \
 ||  defined (CONFIG_KOR_MODEL_SHV_E110S) || defined (CONFIG_KOR_MODEL_SHV_E120S) || defined (CONFIG_KOR_MODEL_SHV_E120L) \
 ||  defined(CONFIG_USA_MODEL_SGH_I717) || defined (CONFIG_KOR_MODEL_SHV_E120K) || defined(CONFIG_KOR_MODEL_SHV_E160S) \
-|| defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+|| defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 /* YDA165 AVDD regulator */
 static struct regulator *amp_reg = NULL;
 static int amp_reg_ref_cnt = 0;
@@ -15137,7 +15142,7 @@ void yda165_avdd_power_on(void)
 	
 #if defined (CONFIG_USA_MODEL_SGH_T989)
 	if(get_hw_rev()>=0x05) 
-#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	if(get_hw_rev()>=0x00)
 #elif defined (CONFIG_USA_MODEL_SGH_I727)
 	if(get_hw_rev()>=0x06)
@@ -15232,7 +15237,7 @@ void yda165_avdd_power_off(void)
 		
 #if defined (CONFIG_USA_MODEL_SGH_T989)
 	if(get_hw_rev()>=0x05) 
-#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M)
+#elif defined (CONFIG_USA_MODEL_SGH_I717) || defined(CONFIG_USA_MODEL_SGH_I717R) || defined(CONFIG_USA_MODEL_SGH_I717D) || defined(CONFIG_USA_MODEL_SGH_I717M) || defined(CONFIG_JPN_MODEL_SC_05D)
 	if(get_hw_rev()>=0x00) 
 #elif defined (CONFIG_USA_MODEL_SGH_I727)
 	if(get_hw_rev()>=0x06)      

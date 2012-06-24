@@ -1404,13 +1404,6 @@ static inline void hci_conn_complete_evt(struct hci_dev *hdev, struct sk_buff *s
 
 		conn->type = SCO_LINK;
 	}
-	if ((!conn->ssp_mode || !conn->hdev->ssp_mode)
-	/* SS_BLUETOOTH(jh113.kim) 2012.03.02
-	MicroSoft BT Mouse 5000 pairing fail issue */
-	&& ((conn->dev_class[1] & 0x1f) != 0x05)) {
-		__u8 auth = AUTH_DISABLED;
-		hci_send_cmd(hdev, HCI_OP_WRITE_AUTH_ENABLE, 1, &auth);
-	}
 
 	if (!ev->status) {
 		conn->handle = __le16_to_cpu(ev->handle);
@@ -2767,7 +2760,7 @@ static inline void hci_simple_pair_complete_evt(struct hci_dev *hdev, struct sk_
 	if (!test_bit(HCI_CONN_AUTH_PEND, &conn->pend) && ev->status != 0) {
 		mgmt_auth_failed(hdev->id, &conn->dst, ev->status);
 		conn->out = 1;
-		conn->disc_timeout = HCI_DISCONN_TIMEOUT/200; // 0.01 sec
+		conn->disc_timeout = HCI_DISCONN_TIMEOUT/200; /* 0.01 sec */
 	}
 	hci_conn_put(conn);
 

@@ -260,7 +260,7 @@ static ssize_t mdnie_scenario_store(struct device *dev,
 
 	return size;
 }
-static DEVICE_ATTR(mdnie_scenario, 0664, mdnie_scenario_show, mdnie_scenario_store);
+static DEVICE_ATTR(scenario, 0664, mdnie_scenario_show, mdnie_scenario_store);
 
 /* ##########################################################
  * #
@@ -338,7 +338,7 @@ static ssize_t mdnie_ove_store(struct device *dev,
     return size;
 }
 
-static DEVICE_ATTR(mdnie_ove, 0664, mdnie_ove_show, mdnie_ove_store);
+static DEVICE_ATTR(outdoor, 0664, mdnie_ove_show, mdnie_ove_store);
 
 /* ##########################################################
  * #
@@ -534,7 +534,7 @@ int cmc623_sysfs_init(void)
 		ret = -1;
 	}
 
-	tune_cmc623_dev = device_create(mdnie_class, NULL, 0, NULL, "cmc623");
+	tune_cmc623_dev = device_create(mdnie_class, NULL, 0, NULL, "mdnie");
 	if(IS_ERR(tune_cmc623_dev)) {
 		printk("Failed to create device(tune_cmc623_dev)!!");
 		ret = -1;
@@ -557,16 +557,16 @@ int cmc623_sysfs_init(void)
 		pr_err("Failed to create device file!(%s)!\n", dev_attr_lcdtype.attr.name);
 		ret = -1;
 	}
-    if (device_create_file(tune_cmc623_dev, &dev_attr_mdnie_scenario) < 0) {
-        pr_err("Failed to create device file!(%s)!\n", dev_attr_mdnie_scenario.attr.name);
+    if (device_create_file(tune_cmc623_dev, &dev_attr_scenario) < 0) {
+        pr_err("Failed to create device file!(%s)!\n", dev_attr_scenario.attr.name);
 		ret = -1;
     }
 	 if (device_create_file(tune_cmc623_dev, &dev_attr_tuning) < 0) {
         pr_err("Failed to create device file(%s)!\n",dev_attr_tuning.attr.name);
         ret = -1;
     }
-	if (device_create_file(tune_cmc623_dev, &dev_attr_mdnie_ove) < 0) {
-        printk("[CMC623:ERROR] device_crate_filed(%s) \n", dev_attr_mdnie_ove.attr.name);
+	if (device_create_file(tune_cmc623_dev, &dev_attr_outdoor) < 0) {
+        printk("[CMC623:ERROR] device_crate_filed(%s) \n", dev_attr_outdoor.attr.name);
         ret = -1;
     }
 

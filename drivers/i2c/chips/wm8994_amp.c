@@ -244,7 +244,7 @@ EXPORT_SYMBOL_GPL(wm8994_reg_write);
 //------------------------------------------------
 // Definition external function prototype.
 //------------------------------------------------
-#if defined(CONFIG_WM8994_KOR_E140S) || defined(CONFIG_WM8994_KOR_E140L)
+#if defined(CONFIG_TARGET_SERIES_P5LTE) && defined(CONFIG_TARGET_LOCALE_KOR)
 /*
  * ONLY FOR P5_LTE_KOR SKT/KT/LGU
  */
@@ -405,7 +405,8 @@ void wm8994_set_headset(int onoff)
 		wm8994_reg_write(amp, 0x611, 0x01C0);
 
 		wm8994_reg_write(amp, 0x15, 0x0000);
-		msleep(50);
+		mdelay(150);
+
 		wm8994_reg_write(amp, 0x01, 0x0303);
 		if(CompensationCAL == 0){
 			wm8994_reg_write(amp, 0x01, 0x0303);
@@ -486,13 +487,13 @@ void wm8994_set_speaker(int onoff)
 	u16 nCompensationResultHigh=0;
 	u8	nServo4Low = 0;
 	u8	nServo4High = 0;
-	printk("wm8994_set_speaker onoff val= %d debasis ",onoff);
+
 	if(wm_check_inited == 0)
 		return;
 
 	if(onoff==1){
 		printk("%s: spk amp on for E140S/K/L\n",__func__);
-		wm8994_reg_write(amp, 0x1, 0x0003);
+		wm8994_reg_write(amp, 0x01, 0x0303);
 
 		wm8994_reg_write(amp, 0x2D, 0x0000);
 		wm8994_reg_write(amp, 0x2E, 0x0000);
@@ -587,7 +588,7 @@ void wm8994_set_speaker_headset(int onoff)
 
 	if(onoff==1){
 		printk("%s: headset_spk amp on for E140SKL\n",__func__);
-		wm8994_reg_write(amp, 0x1, 0x0003);
+		wm8994_reg_write(amp, 0x01, 0x0303);
 
 		wm8994_reg_write(amp, 0x20, 0x0139);
 		wm8994_reg_write(amp, 0x21, 0x0139);
@@ -627,13 +628,14 @@ void wm8994_set_speaker_headset(int onoff)
 
 		wm8994_reg_write(amp, 0x15, 0x0000);
 		msleep(50);
+
 		if(CompensationCAL == 0){
 			wm8994_reg_write(amp, 0x01, 0x3303);
 			wm8994_reg_write(amp, 0x60, 0x0022);
 			wm8994_reg_write(amp, 0x4C, 0x9f25);
 			msleep(5);
-			wm8994_reg_write(amp, 0x1C, 0x01F4);
-			wm8994_reg_write(amp, 0x1D, 0x01F4);
+			wm8994_reg_write(amp, 0x1C, 0x0160);
+			wm8994_reg_write(amp, 0x1D, 0x0160);
 
 			wm8994_reg_write(amp, 0x2D, 0x0010); // DC Offset calibration by DC_Servo calculation
 			wm8994_reg_write(amp, 0x2E, 0x0010);
@@ -644,8 +646,8 @@ void wm8994_set_speaker_headset(int onoff)
 			nReadServo4Val=wm8994_reg_read(amp, 0x57);
 			nServo4Low=(signed char)(nReadServo4Val & 0xff);
 			nServo4High=(signed char)((nReadServo4Val>>8) & 0xff);
-			nCompensationResultLow=((signed short)nServo4Low -5)&0x00ff;
-			nCompensationResultHigh=((signed short)(nServo4High -5)<<8)&0xff00;
+			nCompensationResultLow=((signed short)nServo4Low-5)&0x00ff;
+			nCompensationResultHigh=((signed short)(nServo4High-5)<<8)&0xff00;
 			ncompensationResult=nCompensationResultLow|nCompensationResultHigh;
 
 			wm8994_reg_write(amp, 0x57, ncompensationResult); // popup
@@ -668,7 +670,7 @@ void wm8994_set_speaker_headset(int onoff)
 			msleep(15);
 		}
 		wm8994_reg_write(amp, 0x01, 0x3303);
-		//wm8994_reg_write(amp, 0x1, 0x3303);
+		//wm8994_reg_write(amp, 0x01, 0x3303);
 		wm8994_reg_write(amp, 0x60, 0x00EE);
 	} else {
 		printk("%s: headset_spk amp off for E140SKL\n",__func__);
@@ -758,7 +760,7 @@ void wm8994_set_cradle(int onoff)
 		if(CompensationCAL == 0)
 		{
 			wm8994_reg_write(amp, 0x39, 0x006C);
-			wm8994_reg_write(amp, 0x1, 0x0003);
+			wm8994_reg_write(amp, 0x01, 0x0003);
 			msleep(20);
 			wm8994_reg_write(amp, 0x102, 0x0003);
 			wm8994_reg_write(amp, 0x56, 0x0003);
@@ -767,7 +769,7 @@ void wm8994_set_cradle(int onoff)
 			wm8994_reg_write(amp, 0x5D, 0x0002);
 			wm8994_reg_write(amp, 0x55, 0x03E0);
 
-			wm8994_reg_write(amp, 0x1, 0x0303);
+			wm8994_reg_write(amp, 0x01, 0x0303);
 			wm8994_reg_write(amp, 0x60, 0x0022);
 
 			wm8994_reg_write(amp, 0x4C, 0x9F25);
@@ -820,7 +822,7 @@ void wm8994_set_cradle(int onoff)
 		wm8994_reg_write(amp, 0x2E, 0x0010);
 
 		wm8994_reg_write(amp, 0x4c, 0x9f25);
-		wm8994_reg_write(amp, 0x1, 0x3303);
+		wm8994_reg_write(amp, 0x01, 0x3303);
 	}
 }
 
@@ -862,8 +864,8 @@ void wm8994_set_spk_cradle(int onoff)
 		wm8994_reg_write(amp, 0x410, 0x1800);
 
 		// Analogue out gain control
-		wm8994_reg_write(amp, 0x20, 0x0139);
-		wm8994_reg_write(amp, 0x21, 0x0139);
+		wm8994_reg_write(amp, 0x20, 0x0170);
+		wm8994_reg_write(amp, 0x21, 0x0170);
 
 		// Line AMP Enable
 		wm8994_reg_write(amp, 0x1E, 0x60); // Check schematic
