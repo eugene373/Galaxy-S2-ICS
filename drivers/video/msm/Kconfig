@@ -14,6 +14,18 @@ config FB_MSM
 	---help---
 	  Support for MSM Framebuffer.
 
+config TWIZ
+        bool "Use Twiz Settings for Correct Camera Color"
+        default n
+        ---help---
+          Enable this option if build for TouchWiz Rom
+
+config AOSP
+        bool "Use AOSP Settings for Correct Camera Color"
+        default n
+        ---help---
+          Enable this option if build for CM9 / AOKP Rom
+
 if FB_MSM
 
 config FB_MSM_BACKLIGHT
