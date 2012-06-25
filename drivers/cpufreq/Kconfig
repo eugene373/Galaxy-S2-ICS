@@ -103,6 +103,7 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	bool "interactive"
 	select CPU_FREQ_GOV_INTERACTIVE
+	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the CPUFreq governor 'interactive' as default. This allows
 	  you to get a full dynamic cpu frequency capable system by simply
@@ -127,7 +128,7 @@ config CPU_FREQ_DEFAULT_GOV_LULZACTIVE
 config CPU_FREQ_DEFAULT_GOV_SCARY
     bool "scary"
     select CPU_FREQ_GOV_SCARY
-    select CPU_FREQ_GOV_SCARY
+    select CPU_FREQ_GOV_PERFORMANCE
     help
         Use the CPUFreq governor 'scary' as default.
 
@@ -146,6 +147,7 @@ config CPU_FREQ_DEFAULT_GOV_LAGFREE
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 	bool "interactiveX"
 	select CPU_FREQ_GOV_INTERACTIVEX
+	select CPU_FREQ_GOV_PERFORMANCE
 	help
 	  Use the CPUFreq governor 'interactivex' as default. This allows
 	  you to get a full dynamic cpu frequency capable system by simply
@@ -156,6 +158,7 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
 config CPU_FREQ_DEFAULT_GOV_SMARTASS2
         bool "smartass2"
   	select CPU_FREQ_GOV_SMARTASS2
+	select CPU_FREQ_GOV_PERFORMANCE
         help
           Use the CPUFreq governor 'smartassV2' as default.
 
@@ -378,10 +381,6 @@ config CPU_FREQ_GOV_ONDEMANDX
   tristate "'ondemandx' cpufreq governor"
   depends on CPU_FREQ
 
-config CPU_FREQ_GOV_SAVAGEDZEN
-  tristate "'savagedzen' cpufreq governor"
-  depends on CPU_FREQ
-
 config CPU_FREQ_GOV_INTERACTIVEX
 tristate "'interactiveX' cpufreq policy governor"
   help
@@ -431,6 +430,32 @@ config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 	help
 	  Sampling latency rate multiplied by the cpu switch latency.
 	  Affects governor polling.
+
+config INTELLI_MAX_ACTIVE_FREQ
+	int "Max Active Freq for Intellidemand"
+	depends on CPU_FREQ_GOV_INTELLIDEMAND
+	default	1512000
+	help
+		Set default max active frequency for intellidemand
+
+config INTELLI_MAX_INACTIVE_FREQ
+	int "Max Inactive Freq for Intellidemand"
+	depends on CPU_FREQ_GOV_INTELLIDEMAND
+	default	1134000
+	help
+		Set default max inactive frequency for intellidemand
+
+config CPU_FREQ_GOV_ONDEMAND_2_PHASE
+	tristate "'2-phase' power-efficiency ondemand algorithm"
+	depends on CPU_FREQ_GOV_ONDEMAND || CPU_FREQ_GOV_INTELLIDEMAND
+	help
+	  '2-phase' - This driver adds a new algo to save power
+
+config SEC_LIMIT_MAX_FREQ
+	bool "Limit Max Freq"
+	depends on CPU_FREQ_GOV_INTELLIDEMAND
+	help
+		Limit Max Freq while screen is on for Intellidemand governor
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
