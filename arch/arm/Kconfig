@@ -148,7 +148,7 @@ config RWSEM_GENERIC_SPINLOCK
 	default y
 
 config RWSEM_XCHGADD_ALGORITHM
-	bool
+	def_bool y
 
 config ARCH_HAS_ILOG2_U32
 	bool
