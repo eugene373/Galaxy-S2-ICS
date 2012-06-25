@@ -381,6 +381,10 @@ config CPU_FREQ_GOV_ONDEMANDX
   tristate "'ondemandx' cpufreq governor"
   depends on CPU_FREQ
 
+config CPU_FREQ_GOV_SAVAGEDZEN
+  tristate "'savagedzen' cpufreq governor"
+  depends on CPU_FREQ
+
 config CPU_FREQ_GOV_INTERACTIVEX
 tristate "'interactiveX' cpufreq policy governor"
   help
