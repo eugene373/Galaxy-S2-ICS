@@ -1332,6 +1332,10 @@ config MSM_DALRPC_TEST
 	help
 	  Exercises DAL RPC calls to QDSP6.
 
+config GPU_OVERCLOCK
+	bool "Enable GPU Overclocking option"
+	default n
+
 config BOOST_L2_BANDWIDTH
 	bool "Boost L2 Bandwidth"
 	default n

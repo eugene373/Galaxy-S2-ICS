@@ -26,13 +26,13 @@
  * It helps to keep variable names smaller, simpler
  */
 
-#define DEF_FREQUENCY_UP_THRESHOLD		(80)
+#define DEF_FREQUENCY_UP_THRESHOLD		(70)
 #define DEF_FREQUENCY_DOWN_THRESHOLD		(45)
 static unsigned int suspended;
-static unsigned int sleep_max_freq=800000;
-static unsigned int sleep_min_freq=400000;
-static unsigned int sleep_prev_freq=200000;
-static unsigned int sleep_prev_max=1000000;
+static unsigned int sleep_max_freq=594000;
+static unsigned int sleep_min_freq=192000;
+static unsigned int sleep_prev_freq=192000;
+static unsigned int sleep_prev_max=1920000;
 
 /*
  * The polling frequency of this governor depends on the capability of
@@ -697,7 +697,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 	return 0;
 }
 
-#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_Scary
+#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_SCARY
 static
 #endif
 struct cpufreq_governor cpufreq_gov_scary = {
