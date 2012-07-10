@@ -220,6 +220,10 @@ config CPU_FREQ_DEFAULT_GOV_SAVAGEDZEN
   help
     Use the CPUFreq governor 'lionheart' as default.
 
+config CPU_FREQ_DEFAULT_GOV_PEGASUSQ
+	bool "pegasusq"
+	select CPU_FREQ_GOV_PEGASUSQ
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -406,6 +410,9 @@ config CPU_FREQ_GOV_LAGFREE
           For details, take a look at linux/Documentation/cpu-freq.
 
           If in doubt, say N.
+
+config CPU_FREQ_GOV_PEGASUSQ
+	tristate "'pegasusq' cpufreq policy governor"
 
 config SEC_DVFS
 	bool "DVFS job"
